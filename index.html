@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Own Goal</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ── */
+:root{
+  --ink:#0a0a0f;
+  --surface:#12121a;
+  --raise:#1c1c28;
+  --border:#ffffff12;
+  --border2:#ffffff22;
+  --text:#f0f0f0;
+  --muted:#6b6b80;
+  --atk:#e63946;
+  --def:#3a7bd5;
+  --spc:#9b5de5;
+  --gold:#ffd166;
+  --green:#06d6a0;
+  --r:14px;
+  --card-w:76px;
+  --card-h:112px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--ink)}
+body{font-family:'Cairo',sans-serif;color:var(--text);overscroll-behavior:none}
+.hidden{display:none!important}
+
+/* ── SCREENS ── */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;overflow-y:auto;overflow-x:hidden;z-index:10}
+
+/* ── LOADING ── */
+#s-loading{justify-content:center;background:var(--ink)}
+.load-logo{font-size:52px;font-weight:900;letter-spacing:-2px;color:var(--gold);text-align:center}
+.load-sub{font-size:13px;color:var(--muted);margin-top:8px;letter-spacing:2px}
+.load-dots{display:flex;gap:8px;margin-top:32px;justify-content:center}
+.load-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);animation:ldot 1.2s ease-in-out infinite}
+.load-dot:nth-child(2){animation-delay:.2s}
+.load-dot:nth-child(3){animation-delay:.4s}
+@keyframes ldot{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+/* ── LOBBY ── */
+#s-lobby{justify-content:flex-start;background:var(--ink)}
+.lobby-header{width:100%;padding:52px 24px 28px;text-align:center;flex-shrink:0}
+.game-logo{font-size:48px;font-weight:900;color:var(--text);letter-spacing:-2px;line-height:1}
+.game-logo span{color:var(--atk)}
+.game-tagline{font-size:12px;color:var(--muted);letter-spacing:3px;margin-top:6px;text-transform:uppercase}
+.pitch-line{width:64px;height:2px;background:var(--atk);margin:16px auto 0;border-radius:1px}
+
+.lobby-body{width:100%;max-width:400px;padding:0 24px 48px;display:flex;flex-direction:column;gap:16px}
+
+.field-group{display:flex;flex-direction:column;gap:6px}
+.field-label{font-size:11px;color:var(--muted);letter-spacing:2px}
+.field-input{width:100%;padding:14px 16px;background:var(--raise);border:1.5px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'Cairo',sans-serif;font-size:16px;outline:none;transition:border-color .18s;text-align:right}
+.field-input:focus{border-color:var(--gold)}
+.field-input::placeholder{color:var(--muted)}
+
+.mode-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode-btn{padding:14px 10px;background:var(--raise);border:1.5px solid var(--border);border-radius:var(--r);color:var(--muted);font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;text-align:center}
+.mode-btn.selected{border-color:var(--gold);color:var(--gold);background:rgba(255,209,102,.08)}
+.mode-btn-icon{font-size:22px;display:block;margin-bottom:4px}
+
+.action-stack{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.btn-primary{width:100%;padding:16px;background:var(--atk);border:none;border-radius:var(--r);color:white;font-family:'Cairo',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:transform .12s,opacity .12s;letter-spacing:.5px}
+.btn-primary:active{transform:scale(.97);opacity:.9}
+.btn-secondary{width:100%;padding:14px;background:transparent;border:1.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'Cairo',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:border-color .18s}
+.btn-secondary:active{border-color:var(--def)}
+
+.divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.join-panel{display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--raise);border:1.5px solid var(--border);border-radius:var(--r)}
+.join-panel.hidden{display:none}
+.code-input{width:100%;padding:14px;background:var(--ink);border:1.5px solid var(--border);border-radius:10px;color:var(--gold);font-family:'Cairo',sans-serif;font-size:28px;text-align:center;letter-spacing:10px;text-transform:uppercase;outline:none;font-weight:700}
+.code-input:focus{border-color:var(--gold)}
+.code-input::placeholder{color:var(--muted);font-size:14px;letter-spacing:2px}
+
+/* ── WAITING ROOM ── */
+#s-room{justify-content:center;background:var(--ink);gap:28px;padding:32px 24px}
+.room-code-panel{background:var(--raise);border:1.5px solid var(--border2);border-radius:20px;padding:24px 36px;text-align:center}
+.rcp-label{font-size:10px;color:var(--muted);letter-spacing:3px;margin-bottom:8px}
+.rcp-code{font-size:56px;font-weight:900;color:var(--gold);letter-spacing:14px;line-height:1}
+.rcp-hint{font-size:11px;color:var(--muted);margin-top:8px}
+.copy-btn{margin-top:12px;padding:8px 20px;background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.25);border-radius:8px;color:var(--gold);font-family:'Cairo',sans-serif;font-size:12px;cursor:pointer}
+
+.vs-panel{width:100%;max-width:320px;display:flex;align-items:center;gap:12px}
+.player-card{flex:1;background:var(--raise);border:1.5px solid var(--border);border-radius:16px;padding:16px 12px;text-align:center;transition:all .3s}
+.player-card.active{border-color:var(--green)}
+.pc-dot{width:10px;height:10px;border-radius:50%;background:var(--muted);margin:0 auto 10px;transition:all .3s}
+.pc-dot.on{background:var(--green);box-shadow:0 0 10px rgba(6,214,160,.6)}
+.pc-name{font-size:14px;font-weight:700}
+.pc-name.waiting{font-size:11px;color:var(--muted);font-weight:400;font-style:italic}
+.vs-sep{font-size:24px;font-weight:900;color:var(--atk);flex-shrink:0}
+
+.room-status{font-size:13px;color:var(--muted);text-align:center}
+.room-actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px}
+
+/* ── GAME SCREEN ── */
+#s-game{justify-content:space-between;background:var(--ink);padding:0}
+
+/* Score bar */
+.scorebar{width:100%;padding:10px 16px 8px;background:rgba(10,10,15,.92);border-bottom:1px solid var(--border);flex-shrink:0;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.sb-inner{display:flex;align-items:center;justify-content:space-between;max-width:420px;margin:0 auto}
+.sb-side{flex:1}
+.sb-side.mine{text-align:right}
+.sb-name{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+.sb-name.mine{margin-left:auto;text-align:right}
+.sb-score{font-size:46px;font-weight:900;line-height:1;color:var(--text)}
+.sb-score.mine{color:var(--gold)}
+.sb-mid{text-align:center;padding:0 10px;flex-shrink:0}
+.sb-sep{font-size:15px;color:var(--muted);font-weight:700}
+.card-notifs{display:flex;gap:4px;justify-content:center;margin-top:4px}
+.ycard-badge{width:7px;height:10px;background:var(--gold);border-radius:1px}
+.rcard-badge{width:7px;height:10px;background:var(--atk);border-radius:1px}
+.suspended-badge{font-size:9px;color:var(--atk);border:1px solid var(--atk);border-radius:4px;padding:0 4px}
+
+/* Mode badge */
+.mode-badge{font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(155,93,229,.15);border:1px solid rgba(155,93,229,.3);color:#c084fc;margin-top:2px;display:inline-block}
+
+/* Possession bar */
+.poss-bar{width:100%;padding:5px 16px;background:rgba(0,0,0,.4);border-bottom:1px solid var(--border);text-align:center;font-size:11px;color:var(--muted);flex-shrink:0}
+.poss-name{color:var(--gold);font-weight:700}
+
+/* Opp hand */
+.opp-zone{width:100%;padding:6px 12px;display:flex;justify-content:center;gap:5px;flex-shrink:0;min-height:60px;align-items:center}
+.card-back{width:42px;height:60px;border-radius:8px;background:var(--raise);border:1px solid var(--border);position:relative;overflow:hidden}
+.card-back::after{content:'⬡';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--border2)}
+
+/* Play zone */
+.play-zone{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:8px 16px;position:relative}
+.clash-row{display:flex;gap:16px;align-items:center;justify-content:center}
+.play-slot{width:var(--card-w);height:var(--card-h);border-radius:var(--r);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);position:relative;overflow:hidden}
+.play-slot.filled{border:none}
+.clash-vs{font-size:16px;font-weight:900;color:var(--atk);flex-shrink:0}
+.status-msg{font-size:13px;font-weight:700;color:var(--gold);text-align:center;min-height:20px;letter-spacing:.3px;padding:0 12px}
+.event-msg{font-size:11px;color:var(--muted);text-align:center;min-height:16px;font-style:italic;padding:0 16px}
+
+/* Action bar */
+.abar{width:100%;display:flex;gap:8px;padding:0 16px 6px;justify-content:center;flex-shrink:0;min-height:48px;align-items:center}
+.btn-play{padding:12px 28px;background:var(--green);border:none;border-radius:var(--r);color:var(--ink);font-family:'Cairo',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:transform .12s;display:none}
+.btn-play:active{transform:scale(.96)}
+.btn-burn{padding:10px 16px;background:transparent;border:1.5px solid var(--border2);border-radius:var(--r);color:var(--muted);font-family:'Cairo',sans-serif;font-size:12px;cursor:pointer;display:none}
+.btn-burn:active{opacity:.7}
+
+/* Strategy draw bar */
+.strategy-bar{width:100%;padding:4px 16px;background:rgba(155,93,229,.08);border-top:1px solid rgba(155,93,229,.15);flex-shrink:0;display:none;align-items:center;justify-content:center;gap:8px}
+.strategy-bar.active{display:flex}
+.draw-btn{padding:8px 14px;background:rgba(155,93,229,.15);border:1px solid rgba(155,93,229,.3);border-radius:8px;color:#c084fc;font-family:'Cairo',sans-serif;font-size:12px;font-weight:600;cursor:pointer}
+.draw-btn.selected{background:rgba(155,93,229,.35);border-color:#9b5de5}
+.draw-label{font-size:10px;color:var(--muted)}
+
+/* My hand */
+.hand-wrap{width:100%;padding:4px 0 16px;overflow-x:auto;scrollbar-width:none;display:flex;justify-content:center;flex-shrink:0}
+.hand-wrap::-webkit-scrollbar{display:none}
+.hand{display:flex;gap:7px;padding:8px 16px;align-items:flex-end}
+
+/* ── CARDS ── */
+.card{width:var(--card-w);height:var(--card-h);border-radius:var(--r);position:relative;cursor:pointer;flex-shrink:0;overflow:hidden;transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s;border:1px solid var(--border)}
+.card:active{transform:translateY(-12px) scale(1.06)!important}
+.card.selected{transform:translateY(-18px) scale(1.08);z-index:5}
+.card.unplayable{opacity:.22;cursor:not-allowed;filter:grayscale(.8)}
+.card.atk{background:linear-gradient(155deg,#1a0505,#0e0202)}
+.card.atk::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(230,57,70,.28) 0%,transparent 65%)}
+.card.atk.selected{box-shadow:0 0 0 1.5px var(--atk),0 12px 32px rgba(230,57,70,.4)}
+.card.def{background:linear-gradient(155deg,#03091a,#02060f)}
+.card.def::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(58,123,213,.24) 0%,transparent 65%)}
+.card.def.selected{box-shadow:0 0 0 1.5px var(--def),0 12px 32px rgba(58,123,213,.4)}
+.card.spc{background:linear-gradient(155deg,#0d0516,#07020f)}
+.card.spc::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(155,93,229,.22) 0%,transparent 65%)}
+.card.spc.selected{box-shadow:0 0 0 1.5px var(--spc),0 12px 32px rgba(155,93,229,.4)}
+.card-body{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 6px}
+.card-type{font-size:8px;letter-spacing:1.5px;position:absolute;top:7px;right:0;left:0;text-align:center;font-weight:700;opacity:.6}
+.card-type.atk{color:var(--atk)}
+.card-type.def{color:var(--def)}
+.card-type.spc{color:var(--spc)}
+.card-icon{font-size:26px;line-height:1}
+.card-name{font-size:11px;font-weight:700;text-align:center;line-height:1.2;color:var(--text)}
+.card-name-en{font-size:8px;color:var(--muted);text-align:center;font-weight:400}
+.card-accent{position:absolute;top:0;right:0;width:28px;height:2px;border-radius:0 var(--r) 0 0}
+.card-accent.atk{background:var(--atk)}
+.card-accent.def{background:var(--def)}
+.card-accent.spc{background:var(--spc)}
+
+/* ── OVERLAYS ── */
+.overlay{position:fixed;inset:0;background:rgba(10,10,15,.88);display:flex;align-items:flex-end;justify-content:center;z-index:100;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.overlay.center{align-items:center}
+.overlay-panel{width:100%;max-width:420px;background:var(--surface);border-radius:24px 24px 0 0;padding:28px 24px 48px;border-top:1px solid var(--border2)}
+.overlay-panel.center{border-radius:24px;margin:24px}
+.ov-title{font-size:20px;font-weight:900;text-align:center;margin-bottom:6px}
+.ov-sub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:20px}
+.ov-actions{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+
+/* VAR overlay */
+.var-coin{width:80px;height:80px;border-radius:50%;background:var(--raise);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 20px;cursor:pointer;transition:transform .2s}
+.var-coin:active{transform:scale(.94)}
+.var-choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.var-choice{padding:16px;background:var(--raise);border:1.5px solid var(--border2);border-radius:var(--r);text-align:center;cursor:pointer;transition:all .18s}
+.var-choice:hover,.var-choice:active{border-color:var(--gold);background:rgba(255,209,102,.08)}
+.var-choice-icon{font-size:28px;display:block;margin-bottom:6px}
+.var-choice-label{font-size:13px;font-weight:700}
+
+/* Penalty overlay */
+.pen-icon{font-size:64px;text-align:center;margin-bottom:12px}
+.pen-options{display:flex;flex-direction:column;gap:8px}
+
+/* Game over overlay */
+.go-result{font-size:72px;text-align:center;margin-bottom:8px}
+.go-title{font-size:22px;font-weight:900;text-align:center}
+.go-score{font-size:14px;color:var(--muted);text-align:center;margin-top:4px}
+.go-clown{font-size:12px;color:var(--muted);text-align:center;margin-top:12px;padding:10px;background:var(--raise);border-radius:10px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--raise);border:1px solid var(--border2);border-radius:12px;padding:10px 20px;font-size:13px;color:var(--text);opacity:0;transition:all .25s;z-index:200;white-space:nowrap;max-width:90vw;text-align:center;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── RESHUFFLE OVERLAY ── */
+.reshuffle-hand{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0}
+.reshuffle-card{padding:10px 14px;background:var(--raise);border:1.5px solid var(--border);border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
+.reshuffle-card.chosen{border-color:var(--spc);background:rgba(155,93,229,.12);color:#c084fc}
+.reshuffle-count{font-size:11px;color:var(--muted);text-align:center}
+
+/* ── UTIL ── */
+.text-center{text-align:center}
+.mt-8{margin-top:8px}
+.mt-16{margin-top:16px}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="s-loading" class="screen">
+  <div>
+    <div class="load-logo">Own Goal</div>
+    <div class="load-sub">كورة كاردز</div>
+    <div class="load-dots">
+      <div class="load-dot"></div>
+      <div class="load-dot"></div>
+      <div class="load-dot"></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="s-lobby" class="screen hidden">
+  <div class="lobby-header">
+    <div class="game-logo">Own<span>Goal</span></div>
+    <div class="game-tagline">كورة الشارع — كارت لكارت</div>
+    <div class="pitch-line"></div>
+  </div>
+
+  <div class="lobby-body">
+    <div class="field-group">
+      <div class="field-label">اسمك</div>
+      <input id="inp-name" class="field-input" type="text" placeholder="ادخل اسمك" maxlength="16" autocomplete="off">
+    </div>
+
+    <div class="field-group">
+      <div class="field-label">وضع اللعب</div>
+      <div class="mode-row">
+        <button class="mode-btn selected" id="mode-luck" onclick="selectMode('luck')">
+          <span class="mode-btn-icon">🎲</span>
+          مود الحظ
+        </button>
+        <button class="mode-btn" id="mode-strategy" onclick="selectMode('strategy')">
+          <span class="mode-btn-icon">🧠</span>
+          مود الاستراتيجية
+        </button>
+      </div>
+    </div>
+
+    <div class="action-stack">
+      <button class="btn-primary" onclick="doCreate()">➕ إنشاء غرفة</button>
+      <div class="divider">أو</div>
+      <button class="btn-secondary" onclick="toggleJoin()">🚪 انضم لغرفة</button>
+    </div>
+
+    <div class="join-panel hidden" id="join-panel">
+      <input id="inp-code" class="code-input" type="text" placeholder="ABCD" maxlength="4" autocomplete="off" oninput="this.value=this.value.toUpperCase()">
+      <button class="btn-primary" onclick="doJoin()">انضم</button>
+    </div>
+  </div>
+</div>
+
+<!-- WAITING ROOM -->
+<div id="s-room" class="screen hidden">
+  <div class="text-center">
+    <div class="field-label" style="margin-bottom:4px">شارك الكود مع صاحبك</div>
+  </div>
+
+  <div class="room-code-panel">
+    <div class="rcp-label">كود الغرفة</div>
+    <div class="rcp-code" id="room-code-display">----</div>
+    <div class="rcp-hint">اكتب الكود ده عند صاحبك</div>
+    <button class="copy-btn" onclick="copyCode()">📋 نسخ الكود</button>
+  </div>
+
+  <div class="vs-panel">
+    <div class="player-card active" id="pc-p1">
+      <div class="pc-dot on" id="dot-p1"></div>
+      <div class="pc-name" id="pname-p1">---</div>
+    </div>
+    <div class="vs-sep">VS</div>
+    <div class="player-card" id="pc-p2">
+      <div class="pc-dot" id="dot-p2"></div>
+      <div class="pc-name waiting" id="pname-p2">في انتظار المنافس...</div>
+    </div>
+  </div>
+
+  <div class="room-status" id="room-status">في انتظار اللاعب الثاني...</div>
+
+  <div class="room-actions">
+    <button class="btn-primary hidden" id="btn-start" onclick="doStart()">🏁 ابدأ الماتش</button>
+    <button class="btn-secondary" onclick="doLeave()">↩ خروج</button>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="s-game" class="screen hidden">
+
+  <!-- Score bar -->
+  <div class="scorebar">
+    <div class="sb-inner">
+      <div class="sb-side mine">
+        <div class="sb-name mine" id="sb-myname">أنت</div>
+        <div class="sb-score mine" id="sb-myscore">0</div>
+        <div class="card-notifs" id="sb-mynotifs"></div>
+      </div>
+      <div class="sb-mid">
+        <div class="sb-sep">:</div>
+        <div class="mode-badge" id="mode-label">حظ</div>
+      </div>
+      <div class="sb-side">
+        <div class="sb-name" id="sb-oppname">منافس</div>
+        <div class="sb-score" id="sb-oppscore">0</div>
+        <div class="card-notifs" id="sb-oppnotifs"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Possession bar -->
+  <div class="poss-bar">
+    <span id="poss-label">الكرة لوز 🎲</span> <span class="poss-name" id="poss-name"></span>
+  </div>
+
+  <!-- Opponent hand (face down) -->
+  <div class="opp-zone" id="opp-zone"></div>
+
+  <!-- Strategy draw bar (hidden in luck mode) -->
+  <div class="strategy-bar" id="strategy-bar">
+    <span class="draw-label">سحب:</span>
+    <button class="draw-btn" id="draw-1" onclick="strategyPickDraw(1)">١</button>
+    <button class="draw-btn" id="draw-2" onclick="strategyPickDraw(2)">٢</button>
+    <button class="draw-btn" id="draw-3" onclick="strategyPickDraw(3)">٣</button>
+    <span class="draw-label" id="draw-hint">اختار كم تسحب</span>
+  </div>
+
+  <!-- Play zone -->
+  <div class="play-zone">
+    <div class="clash-row">
+      <div class="play-slot" id="sl-opp"><span>منافسك</span></div>
+      <div class="clash-vs">⚡</div>
+      <div class="play-slot" id="sl-me"><span>أنت</span></div>
+    </div>
+    <div class="status-msg" id="status-msg">...</div>
+    <div class="event-msg" id="event-msg"></div>
+  </div>
+
+  <!-- Action bar -->
+  <div class="abar">
+    <button class="btn-play" id="btn-play" onclick="playSelected()">العب الكارت</button>
+    <button class="btn-burn" id="btn-burn" onclick="burnSelected()">🔥 احرق كارت</button>
+  </div>
+
+  <!-- My hand -->
+  <div class="hand-wrap">
+    <div class="hand" id="my-hand"></div>
+  </div>
+</div>
+
+<!-- VAR OVERLAY -->
+<div class="overlay center hidden" id="ov-var">
+  <div class="overlay-panel center">
+    <div class="ov-title">📹 VAR</div>
+    <div class="ov-sub">إنت اللي بتلعب VAR — اختار وش أو ضهر</div>
+    <div class="var-choices">
+      <div class="var-choice" onclick="submitVAR('heads')">
+        <span class="var-choice-icon">🟡</span>
+        <div class="var-choice-label">وش</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">يأكد الحدث</div>
+      </div>
+      <div class="var-choice" onclick="submitVAR('tails')">
+        <span class="var-choice-icon">⚪</span>
+        <div class="var-choice-label">ضهر</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">يعكس الحدث</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VAR RESULT OVERLAY -->
+<div class="overlay center hidden" id="ov-var-result">
+  <div class="overlay-panel center">
+    <div class="ov-title" id="var-result-title">📹 نتيجة VAR</div>
+    <div class="ov-sub" id="var-result-sub"></div>
+    <div class="ov-actions">
+      <button class="btn-primary" onclick="closeOverlay('ov-var-result')">تمام</button>
+    </div>
+  </div>
+</div>
+
+<!-- PENALTY OVERLAY -->
+<div class="overlay center hidden" id="ov-penalty">
+  <div class="overlay-panel center">
+    <div class="pen-icon">🥅</div>
+    <div class="ov-title">بنلتي!</div>
+    <div class="ov-sub" id="pen-sub">هدف مضمون — بس أون جول يوقفه</div>
+    <div class="pen-options" id="pen-options"></div>
+  </div>
+</div>
+
+<!-- RESHUFFLE OVERLAY -->
+<div class="overlay hidden" id="ov-reshuffle">
+  <div class="overlay-panel">
+    <div class="ov-title">🔄 ريشافل</div>
+    <div class="ov-sub">اختار كروت تبدلها من الديك</div>
+    <div class="reshuffle-hand" id="reshuffle-cards"></div>
+    <div class="reshuffle-count" id="reshuffle-count">اختار 2 كروت</div>
+    <div class="ov-actions">
+      <button class="btn-primary" id="btn-reshuffle-confirm" onclick="confirmReshuffle()" disabled>بدّل</button>
+      <button class="btn-secondary" onclick="closeOverlay('ov-reshuffle')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME OVER OVERLAY -->
+<div class="overlay center hidden" id="ov-gameover">
+  <div class="overlay-panel center">
+    <div class="go-result" id="go-icon">🏆</div>
+    <div class="go-title" id="go-title">فزت!</div>
+    <div class="go-score" id="go-score"></div>
+    <div class="go-clown hidden" id="go-clown"></div>
+    <div class="ov-actions">
+      <button class="btn-primary" onclick="doRestart()">🔄 ماتش تاني</button>
+      <button class="btn-secondary" onclick="doLeave()">↩ خروج</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════════════════
+     ENGINE
+══════════════════════════════════════════════════════ -->
+<script>
+// ═══════════════════════════════════════════════════════════════
+// OWN GOAL — Game Engine v1.0
+// ═══════════════════════════════════════════════════════════════
+'use strict';
+const CARDS={pass:{id:'pass',ar:'باص',en:'Pass',type:'attack',qty:15,desc:'ابدأ الهجوم أو استمر فيه'},dribble:{id:'dribble',ar:'دريبل',en:'Dribble',type:'attack',qty:5,desc:'تقدم بالكرة'},shot:{id:'shot',ar:'شوطة',en:'Shot Goal',type:'attack',qty:5,desc:'سدد على المرمى'},supershot:{id:'supershot',ar:'سوبر شوت',en:'Super Shot',type:'attack',qty:2,desc:'تسديدة لا يوقفها إلا Block Save'},assist:{id:'assist',ar:'اسيست',en:'Assist',type:'attack',qty:5,desc:'مرر للزميل أو هيئ الشوطة'},goal:{id:'goal',ar:'جول',en:'Goal',type:'attack',qty:5,desc:'سجل مباشرة بعد نجاح أي شوطة'},chain:{id:'chain',ar:'تسلسل',en:'Chain',type:'attack',qty:2,desc:'خد الاستحواذ من الخصم مباشرة'},endmatch:{id:'endmatch',ar:'نهاية الماتش',en:'End Match',type:'special',qty:1,desc:'خلص الماتش دلوقتي'},intercept:{id:'intercept',ar:'تقاطع',en:'Interception',type:'defense',qty:15,counters:['pass'],possession:'steal',desc:'اقطع الباص وخد الكرة'},tackle:{id:'tackle',ar:'تاكل',en:'Tackle',type:'defense',qty:5,counters:['dribble'],possession:'steal',desc:'اوقف الدريبل وخد الكرة'},goalkeeper:{id:'goalkeeper',ar:'جول كيبر',en:'Goal Keeper',type:'defense',qty:5,counters:['shot','goal'],possession:'neutral',desc:'صد الشوطة — الكرة تبقى لوز'},blocksave:{id:'blocksave',ar:'بلوك سيف',en:'Block Save',type:'defense',qty:2,counters:['supershot'],possession:'neutral',desc:'الوحيد اللي يوقف السوبر شوت'},blockshot:{id:'blockshot',ar:'بلوك شوت',en:'Block Shot',type:'defense',qty:3,counters:['shot','goal'],possession:'loose',desc:'حجب الشوطة — الكرة تضيع'},block:{id:'block',ar:'بلوك',en:'Block',type:'defense',qty:4,counters:['pass','dribble'],possession:'neutral',luckOnly:true,desc:'اوقف الباص أو الدريبل (Luck Mode بس)'},foul:{id:'foul',ar:'فاول',en:'Foul',type:'defense',qty:4,counters:['pass','dribble','shot','goal','supershot','assist','chain'],possession:'attacker',desc:'اوقف أي هجوم — بس الاستحواذ للمهاجم'},offside:{id:'offside',ar:'تسلل',en:'Offside',type:'defense',qty:1,counters:['pass','dribble','shot','goal'],possession:'steal',desc:'فخ التسلل — خد الكرة زي Interception'},owngoal:{id:'owngoal',ar:'أون جول',en:'Own Goal',type:'special',qty:1,desc:'الرد الوحيد على البنلتي'},var:{id:'var',ar:'VAR',en:'VAR',type:'special',qty:2,desc:'راجع آخر حدث — إنت اللي تختار وش أو ضهر'},reshuffle:{id:'reshuffle',ar:'ريشافل',en:'Reshuffle',type:'special',qty:4,desc:'بدل كروت من الديك'},penalty:{id:'penalty',ar:'بنلتي',en:'Penalty',type:'special',qty:0,earned:true,desc:'هدف مضمون — بس أون جول يوقفه'}};
+const COUNTER_TABLE={pass:['intercept','block','foul','offside'],dribble:['tackle','block','foul','offside'],shot:['goalkeeper','blockshot','foul'],goal:['goalkeeper','blockshot','foul'],supershot:['blocksave','foul'],assist:['intercept','foul'],chain:['intercept','foul'],penalty:['owngoal']};
+const POSSESSION_RESULT={intercept:'steal',tackle:'steal',goalkeeper:'neutral',blocksave:'neutral',blockshot:'loose',block:'neutral',foul:'attacker',offside:'steal',owngoal:'neutral'};
+function buildDeck(mode){const deck=[];let uid=0;for(const[key,def]of Object.entries(CARDS)){if(def.earned)continue;if(def.luckOnly&&mode==='strategy')continue;if(def.qty===0)continue;for(let i=0;i<def.qty;i++)deck.push({...def,uid:`${key}_${uid++}`});}return shuffle(deck);}
+function dealHand(deck,size){size=size||4;const remaining=[...deck];const hand=[];const attackIdx=remaining.findIndex(c=>c.type==='attack');if(attackIdx!==-1)hand.push(remaining.splice(attackIdx,1)[0]);while(hand.length<size&&remaining.length>0){const idx=Math.floor(Math.random()*remaining.length);hand.push(remaining.splice(idx,1)[0]);}return{hand:shuffle(hand),deck:remaining};}
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function resolveDuel(atkCard,defCard,state){const atk=atkCard.id,def=defCard.id;if(def==='foul'){return resolveFoul(atkCard,state);}const counters=COUNTER_TABLE[atk]||[];const isCorrect=counters.includes(def);if(!isCorrect)return{success:'attack',possession:'attacker',event:'attack_succeeded',detail:`${atkCard.ar} نجح`};const possResult=POSSESSION_RESULT[def];if(possResult==='steal')return{success:'defense',possession:'defender',event:'defense_stole',detail:`${defCard.ar} قطع ${atkCard.ar}`};return{success:'defense',possession:possResult,event:'defense_neutral',detail:`${defCard.ar} صد ${atkCard.ar}`};}
+function resolveFoul(atkCard,state){const defender=state.defender,attacker=state.attacker;const defPlayer=state.players[defender];const newFouls=(defPlayer.fouls||0)+1;let cardNotif=null,suspended=defPlayer.suspended||0;if(newFouls===2)cardNotif='yellow';if(newFouls>=3){cardNotif='red';suspended=2;}const isShot=['shot','goal','supershot'].includes(atkCard.id);if(isShot)return{success:'foul_on_shot',possession:'attacker',event:'penalty_awarded',triggersPenalty:true,penaltyFor:attacker,defenderFouls:newFouls,cardNotif,suspended,detail:`فاول على الشوطة — بنلتي!`};return{success:'foul',possession:'attacker',event:'foul_committed',triggersPenalty:false,penaltyFor:null,defenderFouls:newFouls,cardNotif,suspended,detail:`فاول — الاستحواذ للمهاجم`};}
+function resolvePenalty(defCard,state){const attacker=state.pendingPenaltyFor;if(defCard.id==='owngoal')return{success:'defense',event:'penalty_saved',goalScored:false,possession:'loose',detail:'أون جول ألغى البنلتي'};return{success:'attack',event:'penalty_scored',goalScored:true,scoringPlayer:attacker,possession:'loose',detail:`بنلتي — هدف!`};}
+function resolveVAR(playerChoice){const flip=Math.random()<.5?'heads':'tails';const won=flip===playerChoice;return{flip,playerChoice,won,confirmed:won?(playerChoice==='heads'):(playerChoice==='tails'),event:'var_resolved'};}
+function scoreGoal(state,pid){const p={...state.players[pid]};p.goals=(p.goals||0)+1;return{...state,players:{...state.players,[pid]:p}};}
+function checkWin(state){for(const[id,p]of Object.entries(state.players)){if((p.goals||0)>=state.winGoals)return{winner:id,name:p.name};}return null;}
+function advanceTurn(state,possessionResult){const{attacker,defender}=state;let na,nd,nb,np;if(possessionResult==='attacker'||possessionResult==='attack'){na=attacker;nd=defender;nb=attacker;np=attacker;}else if(possessionResult==='defender'||possessionResult==='defense'||possessionResult==='steal'){na=defender;nd=attacker;nb=defender;np=defender;}else{na=defender;nd=attacker;nb='loose';np=null;}return{...state,phase:'attack',attacker:na,defender:nd,ballState:nb,possession:np,lastAttackCard:null,lastDefenseCard:null,attackSequence:[],strategyCombo:[],strategyDrawCount:null,strategyCardsPlayed:0,turnCount:(state.turnCount||0)+1};}
+function applyFoulPenalties(state,did,foulResult){const p={...state.players[did]};p.fouls=foulResult.defenderFouls;if(foulResult.cardNotif==='yellow')p.yellowCard=true;if(foulResult.cardNotif==='red'){p.redCard=true;p.suspended=foulResult.suspended;}return{...state,players:{...state.players,[did]:p}};}
+function getPlayableCards(state,pid){const player=state.players[pid];const hand=player.hand||[];const isAtk=state.attacker===pid;const isDef=state.defender===pid;const phase=state.phase;return hand.map(card=>{if((player.suspended||0)>0)return{card,playable:false,reason:'أنت موقوف'};if(phase==='attack'&&isAtk){if(card.type==='attack')return{card,playable:true};if(card.id==='endmatch')return{card,playable:true};if(card.id==='reshuffle')return{card,playable:true};if(card.id==='var')return{card,playable:false,reason:'VAR بس بعد حدث'};if(card.id==='owngoal')return{card,playable:false,reason:'أون جول بس رد على بنلتي'};return{card,playable:false,reason:'دورك تهاجم'};}if(phase==='defend'&&isDef){if(card.id==='block'&&state.mode!=='luck')return{card,playable:false,reason:'Block بس في Luck Mode'};if(card.type==='defense')return{card,playable:true};if(card.id==='reshuffle')return{card,playable:true};if(card.type==='attack')return{card,playable:true,burnOnly:true,reason:'هتتحرق كمحاولة دفاع'};return{card,playable:false};}if(phase==='penalty_pending'&&isDef){if(card.id==='owngoal')return{card,playable:true};return{card,playable:true,burnOnly:true,reason:'بس أون جول يوقف البنلتي'};}return{card,playable:false};});}
+const OwnGoalEngine={CARDS,COUNTER_TABLE,buildDeck,dealHand,shuffle,resolveDuel,resolveFoul,resolvePenalty,resolveVAR,scoreGoal,checkWin,advanceTurn,applyFoulPenalties,getPlayableCards};
+</script>
+
+<!-- ══════════════════════════════════════════════════════
+     FIREBASE SDK
+══════════════════════════════════════════════════════ -->
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import{getDatabase,ref,get,set,update,remove,onValue,runTransaction}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+// ── YOUR FIREBASE CONFIG ──
+// Replace these values with your project's config from Firebase Console:
+// console.firebase.google.com → Project Settings → Your apps → SDK setup
+const firebaseConfig = {
+  apiKey:            "AIzaSyAmqhWFY-ysCfYpv8BTHyD9OXnw4727NgY",
+  authDomain:        "owngoal-fde20.firebaseapp.com",
+  databaseURL:       "https://owngoal-fde20-default-rtdb.firebaseio.com",
+  projectId:         "owngoal-fde20",
+  storageBucket:     "owngoal-fde20.firebasestorage.app",
+  messagingSenderId: "981149563773",
+  appId:             "1:981149563773:web:4184d27b3b8ae3c54a2a14"
+};
+
+const app  = initializeApp(firebaseConfig);
+const db   = getDatabase(app);
+const fbFns = { ref, get, set, update, remove, onValue, runTransaction };
+
+// Make db & fns available to the game layer below
+window._db    = db;
+window._fbFns = fbFns;
+window._fbReady = true;
+document.dispatchEvent(new Event('fb-ready'));
+</script>
+
+<!-- ══════════════════════════════════════════════════════
+     GAME LAYER
+══════════════════════════════════════════════════════ -->
+<script>
+// ── STATE ──
+let myId      = null;   // 'p1' | 'p2'
+let roomCode  = null;
+let gameState = null;
+let selectedCardIdx = null;
+let unsubRoom = null;
+let selectedMode = 'luck';
+let pendingReshuffleUids = [];
+let toastTimer = null;
+
+// ── SCREEN ROUTER ──
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>{s.classList.add('hidden');s.style.display='none';});
+  const el=document.getElementById('s-'+id);
+  el.style.display='flex';
+  el.classList.remove('hidden');
+}
+
+// ── TOAST ──
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// ── MODE SELECT ──
+function selectMode(m){
+  selectedMode=m;
+  document.getElementById('mode-luck').classList.toggle('selected',m==='luck');
+  document.getElementById('mode-strategy').classList.toggle('selected',m==='strategy');
+}
+window.selectMode=selectMode;
+
+// ── JOIN PANEL TOGGLE ──
+function toggleJoin(){
+  const p=document.getElementById('join-panel');
+  p.classList.toggle('hidden');
+  if(!p.classList.contains('hidden'))document.getElementById('inp-code').focus();
+}
+window.toggleJoin=toggleJoin;
+
+// ── HELPERS ──
+function oppId(){return myId==='p1'?'p2':'p1';}
+function me(){return gameState?.players?.[myId];}
+function opp(){return gameState?.players?.[oppId()];}
+function isMyAttack(){return gameState?.phase==='attack'&&gameState?.attacker===myId;}
+function isMyDefend(){return gameState?.phase==='defend'&&gameState?.defender===myId;}
+function isMyPenalty(){return gameState?.phase==='penalty_pending'&&gameState?.defender===myId;}
+
+function getName(){
+  const v=document.getElementById('inp-name').value.trim();
+  if(!v){toast('ادخل اسمك الأول');return null;}
+  return v;
+}
+
+// ── COPY CODE ──
+function copyCode(){
+  if(!roomCode)return;
+  navigator.clipboard.writeText(roomCode).then(()=>toast('تم نسخ الكود ✓')).catch(()=>{
+    toast('الكود: '+roomCode);
+  });
+}
+window.copyCode=copyCode;
+
+// ── FIREBASE INIT WAIT ──
+function withFB(fn){
+  if(window._fbReady){fn();}
+  else{document.addEventListener('fb-ready',fn,{once:true});}
+}
+
+// ── CODE GENERATOR (same as firebase-layer) ──
+const CODE_CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function generateCode(){let c='';for(let i=0;i<4;i++)c+=CODE_CHARS[Math.floor(Math.random()*CODE_CHARS.length)];return c;}
+
+// ── CREATE ROOM ──
+async function doCreate(){
+  const name=getName();if(!name)return;
+  withFB(async()=>{
+    const{ref,get,set}=window._fbFns;
+    const db=window._db;
+    let code,tries=0;
+    do{code=generateCode();tries++;}while(tries<10&&(await get(ref(db,`rooms/${code}`))).exists());
+    const deck=OwnGoalEngine.buildDeck(selectedMode);
+    const d1=OwnGoalEngine.dealHand(deck,4);
+    const d2=OwnGoalEngine.dealHand(d1.deck,4);
+    const room={
+      code,phase:'waiting',mode:selectedMode,gameMode:'1v1',winGoals:6,
+      attacker:null,defender:null,ballState:'loose',possession:null,
+      deck:d2.deck,discardPile:[],lastAttackCard:null,lastDefenseCard:null,
+      lastEvent:null,pendingPenaltyFor:null,pendingVARFor:null,
+      varWindowOpen:false,varWindowEvent:null,attackSequence:[],
+      strategyDrawCount:null,strategyCardsPlayed:0,turnCount:0,winner:null,
+      createdAt:Date.now(),
+      players:{
+        p1:{name,goals:0,hand:d1.hand,fouls:0,yellowCard:false,redCard:false,suspended:0,connected:true},
+        p2:null,
+      }
+    };
+    await set(ref(db,`rooms/${code}`),room);
+    myId='p1';roomCode=code;
+    showRoom(code,name,null);
+  });
+}
+window.doCreate=doCreate;
+
+// ── JOIN ROOM ──
+async function doJoin(){
+  const name=getName();if(!name)return;
+  const code=document.getElementById('inp-code').value.trim().toUpperCase();
+  if(code.length!==4){toast('الكود 4 حروف');return;}
+  withFB(async()=>{
+    const{ref,get,update}=window._fbFns;
+    const db=window._db;
+    const snap=await get(ref(db,`rooms/${code}`));
+    if(!snap.exists()){toast('الغرفة دي مش موجودة');return;}
+    const room=snap.val();
+    if(room.phase!=='waiting'){toast('الماتش اتبدأ بالفعل');return;}
+    if(room.players?.p2){toast('الغرفة ممتلية');return;}
+    const deck=OwnGoalEngine.buildDeck(room.mode);
+    const dealt=OwnGoalEngine.dealHand(deck,4);
+    await update(ref(db,`rooms/${code}/players`),{
+      p2:{name,goals:0,hand:dealt.hand,fouls:0,yellowCard:false,redCard:false,suspended:0,connected:true}
+    });
+    myId='p2';roomCode=code;
+    showRoom(code,room.players.p1.name,name);
+  });
+}
+window.doJoin=doJoin;
+
+// ── SHOW WAITING ROOM ──
+function showRoom(code,p1name,p2name){
+  document.getElementById('room-code-display').textContent=code;
+  document.getElementById('pname-p1').textContent=p1name||'...';
+  if(p2name){
+    document.getElementById('pname-p2').textContent=p2name;
+    document.getElementById('pname-p2').classList.remove('waiting');
+    document.getElementById('dot-p2').classList.add('on');
+    document.getElementById('pc-p2').classList.add('active');
+  }
+  showScreen('room');
+  listenRoom(code);
+}
+
+// ── LISTEN TO ROOM ──
+function listenRoom(code){
+  if(unsubRoom)unsubRoom();
+  const{ref,onValue}=window._fbFns;
+  unsubRoom=onValue(ref(window._db,`rooms/${code}`),(snap)=>{
+    if(!snap.exists()){cleanup();showScreen('lobby');return;}
+    const prev=gameState;
+    gameState=snap.val();
+    syncUI(prev);
+  });
+}
+
+// ── START GAME ──
+async function doStart(){
+  const{ref,runTransaction}=window._fbFns;
+  await runTransaction(ref(window._db,`rooms/${roomCode}`),(room)=>{
+    if(!room||!room.players?.p1||!room.players?.p2||room.phase!=='waiting')return room;
+    const firstAtk=Math.random()<.5?'p1':'p2';
+    room.phase='attack';
+    room.attacker=firstAtk;
+    room.defender=firstAtk==='p1'?'p2':'p1';
+    room.ballState='loose';
+    room.lastEvent={type:'game_started',ts:Date.now()};
+    return room;
+  });
+}
+window.doStart=doStart;
+
+// ── LEAVE / CLEANUP ──
+function cleanup(){if(unsubRoom){unsubRoom();unsubRoom=null;}roomCode=null;gameState=null;myId=null;selectedCardIdx=null;}
+async function doLeave(){
+  if(roomCode&&myId){
+    try{
+      const{ref,update}=window._fbFns;
+      await update(ref(window._db,`rooms/${roomCode}/players/${myId}`),{connected:false});
+    }catch(e){}
+  }
+  cleanup();
+  closeOverlay('ov-gameover');
+  showScreen('lobby');
+}
+window.doLeave=doLeave;
+
+// ══════════════════════════════════════════════════════
+// SYNC UI — called every time Firebase updates
+// ══════════════════════════════════════════════════════
+function syncUI(prev){
+  if(!gameState)return;
+  const{phase,players,mode}=gameState;
+  const p1=players?.p1,p2=players?.p2;
+
+  // ── WAITING ROOM ──
+  if(phase==='waiting'){
+    showScreen('room');
+    if(p2?.name){
+      document.getElementById('pname-p2').textContent=p2.name;
+      document.getElementById('pname-p2').classList.remove('waiting');
+      document.getElementById('dot-p2').classList.add('on');
+      document.getElementById('pc-p2').classList.add('active');
+      if(myId==='p1'){
+        document.getElementById('btn-start').classList.remove('hidden');
+        document.getElementById('room-status').textContent='صاحبك جاهز — ابدأ الماتش!';
+      }else{
+        document.getElementById('room-status').textContent='في انتظار اللاعب الأول يبدأ...';
+      }
+    }
+    return;
+  }
+
+  // ── GAME OVER ──
+  if(phase==='gameover'||gameState.winner){
+    showScreen('game');
+    renderGameUI();
+    showGameOver();
+    return;
+  }
+
+  // ── ACTIVE GAME ──
+  showScreen('game');
+  renderGameUI();
+
+  // Handle new events
+  handleEvents(prev);
+
+  // VAR window
+  if(gameState.varWindowOpen&&gameState.pendingVARFor===myId){
+    showOverlay('ov-var');
+  }
+
+  // Penalty pending — defender's turn
+  if(phase==='penalty_pending'&&gameState.defender===myId){
+    renderPenaltyOverlay();
+  }
+}
+
+// ── RENDER GAME UI ──
+function renderGameUI(){
+  const gs=gameState;
+  if(!gs||!myId)return;
+  const oi=oppId();
+  const myPlayer=gs.players?.[myId];
+  const oppPlayer=gs.players?.[oi];
+
+  // Scores
+  document.getElementById('sb-myname').textContent=myPlayer?.name||'أنت';
+  document.getElementById('sb-oppname').textContent=oppPlayer?.name||'منافس';
+  document.getElementById('sb-myscore').textContent=myPlayer?.goals||0;
+  document.getElementById('sb-oppscore').textContent=oppPlayer?.goals||0;
+
+  // Mode label
+  document.getElementById('mode-label').textContent=gs.mode==='luck'?'حظ':'استراتيجية';
+
+  // Card notifs
+  renderNotifs('sb-mynotifs',myPlayer);
+  renderNotifs('sb-oppnotifs',oppPlayer);
+
+  // Possession
+  if(gs.ballState==='loose'){
+    document.getElementById('poss-label').textContent='الكرة لوز 🎲';
+    document.getElementById('poss-name').textContent='';
+  }else{
+    const possName=gs.players?.[gs.ballState]?.name||'';
+    document.getElementById('poss-label').textContent='الكرة مع';
+    document.getElementById('poss-name').textContent=possName;
+  }
+
+  // Opp hand (face down)
+  const oz=document.getElementById('opp-zone');
+  const oppHandLen=oppPlayer?.hand?.length||0;
+  oz.innerHTML='';
+  for(let i=0;i<oppHandLen;i++)oz.innerHTML+='<div class="card-back"></div>';
+
+  // Played card slots
+  renderSlot('sl-me',gs.playedCards?.[myId]||gs.lastAttackCard&&gs.attacker===myId?gs.lastAttackCard:null, gs.lastDefenseCard&&gs.defender===myId?gs.lastDefenseCard:null);
+  renderSlot('sl-opp',gs.lastAttackCard&&gs.attacker===oi?gs.lastAttackCard:null, gs.lastDefenseCard&&gs.defender===oi?gs.lastDefenseCard:null);
+
+  // My hand
+  renderHand(myPlayer?.hand||[]);
+
+  // Strategy draw bar
+  const sb=document.getElementById('strategy-bar');
+  if(gs.mode==='strategy'&&isMyAttack()&&gs.strategyDrawCount===null){
+    sb.classList.add('active');
+    document.getElementById('draw-hint').textContent='اختار كم تسحب قبل ما تلعب';
+  }else{
+    sb.classList.remove('active');
+  }
+
+  // Controls
+  updateControls();
+}
+
+function renderNotifs(elId,player){
+  const el=document.getElementById(elId);if(!el)return;
+  let html='';
+  if(player?.yellowCard)html+='<div class="ycard-badge"></div>';
+  if(player?.redCard)html+='<div class="rcard-badge"></div>';
+  if((player?.suspended||0)>0)html+=`<div class="suspended-badge">موقوف ${player.suspended}</div>`;
+  el.innerHTML=html;
+}
+
+function renderSlot(id,atkCard,defCard){
+  const el=document.getElementById(id);if(!el)return;
+  const card=atkCard||defCard;
+  if(!card){
+    el.className='play-slot';
+    el.innerHTML=`<span>${id==='sl-me'?'أنت':'منافسك'}</span>`;
+    return;
+  }
+  el.className='play-slot filled';
+  const tc=typeClass(card.type);
+  el.innerHTML=`<div class="card ${tc}" style="width:100%;height:100%;border-radius:12px">
+    <div class="card-accent ${tc}"></div>
+    <div class="card-body">
+      <div class="card-type ${tc}">${typeLabel(card.type)}</div>
+      <div class="card-icon">${cardIcon(card.id)}</div>
+      <div class="card-name">${card.ar}</div>
+    </div>
+  </div>`;
+}
+
+function renderHand(hand){
+  const el=document.getElementById('my-hand');el.innerHTML='';
+  const gs=gameState;
+  const playable=OwnGoalEngine.getPlayableCards(gs,myId);
+  hand.forEach((card,i)=>{
+    const p=playable[i];
+    const ok=p?.playable;
+    const sel=selectedCardIdx===i;
+    const tc=typeClass(card.type);
+    const div=document.createElement('div');
+    div.className=`card ${tc}${!ok?' unplayable':''}${sel?' selected':''}`;
+    div.innerHTML=`<div class="card-accent ${tc}"></div>
+      <div class="card-body">
+        <div class="card-type ${tc}">${typeLabel(card.type)}</div>
+        <div class="card-icon">${cardIcon(card.id)}</div>
+        <div class="card-name">${card.ar}</div>
+        <div class="card-name-en">${card.en}</div>
+      </div>`;
+    div.addEventListener('click',()=>{
+      if(ok)selectCard(i);
+      else if(p?.reason)toast(p.reason);
+    });
+    // Long press for card info
+    let lpt;
+    div.addEventListener('touchstart',()=>{lpt=setTimeout(()=>toast(card.desc),500);},{passive:true});
+    div.addEventListener('touchend',()=>clearTimeout(lpt),{passive:true});
+    el.appendChild(div);
+  });
+}
+
+function selectCard(i){
+  selectedCardIdx=selectedCardIdx===i?null:i;
+  renderHand(me()?.hand||[]);
+  document.getElementById('btn-play').style.display=selectedCardIdx!==null?'block':'none';
+}
+
+function updateControls(){
+  const gs=gameState;
+  const btnPlay=document.getElementById('btn-play');
+  const btnBurn=document.getElementById('btn-burn');
+  const myTurn=isMyAttack()||isMyDefend()||isMyPenalty();
+
+  btnPlay.style.display=(myTurn&&selectedCardIdx!==null)?'block':'none';
+  btnBurn.style.display=(isMyDefend()&&selectedCardIdx===null)?'block':'none';
+
+  // Status message
+  const phase=gs.phase;
+  const atk=gs.players?.[gs.attacker];
+  const def=gs.players?.[gs.defender];
+  let msg='';
+  const sus=(me()?.suspended||0)>0;
+  if(sus){
+    msg=`⏸️ موقوف — ${me().suspended} راوندز`;
+  }else if(phase==='attack'){
+    msg=isMyAttack()?
+      (gs.ballState==='loose'?'🎲 الكرة لوز — هاجم!':'⚔️ دورك — هاجم'):
+      `⏳ ${atk?.name} بيهاجم...`;
+  }else if(phase==='defend'){
+    msg=isMyDefend()?
+      `🛡️ دافع عن نفسك! (${gs.lastAttackCard?.ar||''})`:
+      `⏳ ${def?.name} بيدافع...`;
+  }else if(phase==='penalty_pending'){
+    msg=isMyPenalty()?'🥅 بنلتي — العب أون جول أو احرق كارت':'⚽ بنلتي على خصمك...';
+  }else if(phase==='var_pending'){
+    msg=gs.pendingVARFor===myId?'📹 اختار وش أو ضهر':'📹 خصمك بيلعب VAR...';
+  }else if(phase==='gameover'){
+    msg='🏁 انتهى الماتش';
+  }
+  document.getElementById('status-msg').textContent=msg;
+}
+
+// ── PLAY SELECTED CARD ──
+async function playSelected(){
+  if(selectedCardIdx===null)return;
+  const gs=gameState;
+  const myHand=me()?.hand||[];
+  const card=myHand[selectedCardIdx];
+  if(!card)return;
+  selectedCardIdx=null;
+  renderHand(myHand);
+  document.getElementById('btn-play').style.display='none';
+
+  // Special cards with their own overlays
+  if(card.id==='reshuffle'){openReshuffleOverlay(card);return;}
+
+  if(isMyAttack()){await commitAttack(card);}
+  else if(isMyDefend()||isMyPenalty()){await commitDefense(card);}
+}
+window.playSelected=playSelected;
+
+// ── BURN CARD (defender burns without a proper counter) ──
+async function burnSelected(){
+  const myHand=me()?.hand||[];
+  if(!myHand.length)return;
+  // Burn first card in hand
+  const card=myHand[0];
+  await commitDefense(card,true);
+}
+window.burnSelected=burnSelected;
+
+// ── COMMIT ATTACK ──
+async function commitAttack(card){
+  const{ref,runTransaction}=window._fbFns;
+  await runTransaction(ref(window._db,`rooms/${roomCode}`),(room)=>{
+    if(!room||room.phase!=='attack'||room.attacker!==myId)return room;
+    // Remove card from hand
+    const hand=[...(room.players[myId].hand||[])];
+    const idx=hand.findIndex(c=>c.uid===card.uid);
+    if(idx===-1)return room;
+    hand.splice(idx,1);
+    // Draw replacement
+    let dk=[...(room.deck||[])];
+    let dp=[...(room.discardPile||[])];
+    if(dk.length===0&&dp.length>0){dk=OwnGoalEngine.shuffle(dp);dp=[];}
+    if(dk.length>0)hand.push(dk.shift());
+    room.players[myId].hand=hand;
+    room.deck=dk;
+    room.discardPile=dp;
+    room.lastAttackCard=card;
+    room.attackSequence=[...(room.attackSequence||[]),card.id];
+    room.phase='defend';
+    room.lastEvent={type:'attack_played',player:myId,card:card.id,ts:Date.now()};
+    // End Match special case
+    if(card.id==='endmatch'){
+      room.phase='gameover';
+      room.winner=getCurrentLeader(room);
+      room.lastEvent={type:'end_match',ts:Date.now()};
+    }
+    return room;
+  });
+}
+
+// ── COMMIT DEFENSE ──
+async function commitDefense(card,isBurn){
+  const{ref,runTransaction}=window._fbFns;
+  await runTransaction(ref(window._db,`rooms/${roomCode}`),(room)=>{
+    if(!room)return room;
+    const phase=room.phase;
+    if(phase!=='defend'&&phase!=='penalty_pending')return room;
+    if(room.defender!==myId)return room;
+
+    // Remove card from hand
+    const hand=[...(room.players[myId].hand||[])];
+    const idx=hand.findIndex(c=>c.uid===card.uid);
+    if(idx===-1)return room;
+    hand.splice(idx,1);
+    // Draw replacement
+    let dk=[...(room.deck||[])];
+    let dp=[...(room.discardPile||[])];
+    if(dk.length===0&&dp.length>0){dk=OwnGoalEngine.shuffle(dp);dp=[];}
+    if(dk.length>0)hand.push(dk.shift());
+    room.players[myId].hand=hand;
+    room.deck=dk;room.discardPile=dp;
+    room.lastDefenseCard=card;
+
+    // Penalty phase resolution
+    if(phase==='penalty_pending'){
+      const penResult=OwnGoalEngine.resolvePenalty(card,{
+        pendingPenaltyFor:room.pendingPenaltyFor,
+        players:room.players
+      });
+      room.pendingPenaltyFor=null;
+      if(penResult.goalScored){
+        room.players[penResult.scoringPlayer].goals=(room.players[penResult.scoringPlayer].goals||0)+1;
+        room.lastEvent={type:'penalty_scored',player:penResult.scoringPlayer,ts:Date.now()};
+        // Check win
+        if(room.players[penResult.scoringPlayer].goals>=room.winGoals){
+          room.phase='gameover';room.winner=penResult.scoringPlayer;
+        }else{
+          advanceRoomTurn(room,'loose');
+          // VAR window
+          room.varWindowOpen=hasVARCard(room);
+          room.varWindowEvent={type:'penalty_scored',player:penResult.scoringPlayer};
+          if(room.varWindowOpen)room.pendingVARFor=getPossibleVARPlayer(room);
+        }
+      }else{
+        room.lastEvent={type:'penalty_saved',ts:Date.now()};
+        advanceRoomTurn(room,'loose');
+      }
+      return room;
+    }
+
+    // Normal defense resolution
+    const atkCard=room.lastAttackCard;
+    const duelResult=OwnGoalEngine.resolveDuel(atkCard,card,roomToState(room));
+
+    // Apply foul penalties if needed
+    if(duelResult.event==='foul_committed'||duelResult.event==='penalty_awarded'){
+      room.players[myId].fouls=(room.players[myId].fouls||0)+1;
+      const fouls=room.players[myId].fouls;
+      if(fouls===2)room.players[myId].yellowCard=true;
+      if(fouls>=3){room.players[myId].redCard=true;room.players[myId].suspended=2;}
+    }
+
+    // Penalty trigger
+    if(duelResult.triggersPenalty){
+      room.phase='penalty_pending';
+      room.pendingPenaltyFor=duelResult.penaltyFor;
+      room.lastEvent={type:'penalty_awarded',player:duelResult.penaltyFor,ts:Date.now()};
+      return room;
+    }
+
+    // Goal scored
+    const atkId=atkCard.id;
+    const atkSucceeded=duelResult.success==='attack';
+    if(atkSucceeded&&['shot','goal','supershot'].includes(atkId)){
+      const scorer=room.attacker;
+      room.players[scorer].goals=(room.players[scorer].goals||0)+1;
+      room.lastEvent={type:'goal',player:scorer,ts:Date.now()};
+      if(room.players[scorer].goals>=room.winGoals){
+        room.phase='gameover';room.winner=scorer;
+      }else{
+        advanceRoomTurn(room,'loose');
+        room.varWindowOpen=hasVARCard(room);
+        room.varWindowEvent={type:'goal',player:scorer};
+        if(room.varWindowOpen)room.pendingVARFor=getPossibleVARPlayer(room);
+      }
+    }else{
+      room.lastEvent={type:duelResult.event,detail:duelResult.detail,ts:Date.now()};
+      advanceRoomTurn(room,duelResult.possession);
+    }
+    return room;
+  });
+}
+
+// ── ADVANCE TURN INSIDE TRANSACTION ──
+function advanceRoomTurn(room,possessionResult){
+  const{attacker,defender}=room;
+  let na,nd,nb,np;
+  if(possessionResult==='attacker'||possessionResult==='attack'){na=attacker;nd=defender;nb=attacker;np=attacker;}
+  else if(possessionResult==='defender'||possessionResult==='steal'){na=defender;nd=attacker;nb=defender;np=defender;}
+  else{na=defender;nd=attacker;nb='loose';np=null;}
+  room.phase='attack';
+  room.attacker=na;room.defender=nd;room.ballState=nb;room.possession=np;
+  room.lastAttackCard=null;room.lastDefenseCard=null;
+  room.attackSequence=[];room.strategyDrawCount=null;room.strategyCardsPlayed=0;
+  room.turnCount=(room.turnCount||0)+1;
+  // Decrement suspension
+  ['p1','p2'].forEach(pid=>{if((room.players[pid]?.suspended||0)>0)room.players[pid].suspended--;});
+}
+
+function roomToState(room){
+  return{
+    mode:room.mode,phase:room.phase,players:{p1:{...room.players.p1},p2:{...room.players.p2}},
+    attacker:room.attacker,defender:room.defender,ballState:room.ballState,
+    pendingPenaltyFor:room.pendingPenaltyFor,lastAttackCard:room.lastAttackCard,
+    lastDefenseCard:room.lastDefenseCard,winGoals:room.winGoals||6,turnCount:room.turnCount||0,
+    deck:room.deck||[],discardPile:room.discardPile||[],attackSequence:room.attackSequence||[],
+    strategyDrawCount:room.strategyDrawCount||null,strategyCardsPlayed:room.strategyCardsPlayed||0,
+    strategyCombo:room.strategyCombo||[],pendingVARFor:room.pendingVARFor||null,
+    varWindowOpen:room.varWindowOpen||false,lastEvent:room.lastEvent||null,winner:room.winner||null,
+  };
+}
+
+function hasVARCard(room){
+  return['p1','p2'].some(pid=>(room.players[pid]?.hand||[]).some(c=>c.id==='var'));
+}
+function getPossibleVARPlayer(room){
+  for(const pid of['p1','p2']){if((room.players[pid]?.hand||[]).some(c=>c.id==='var'))return pid;}
+  return null;
+}
+function getCurrentLeader(room){
+  const g1=room.players?.p1?.goals||0,g2=room.players?.p2?.goals||0;
+  if(g1>g2)return'p1';if(g2>g1)return'p2';return null;
+}
+
+// ── VAR ──
+async function submitVAR(choice){
+  closeOverlay('ov-var');
+  const result=OwnGoalEngine.resolveVAR(choice);
+  const{ref,runTransaction}=window._fbFns;
+  await runTransaction(ref(window._db,`rooms/${roomCode}`),(room)=>{
+    if(!room||room.pendingVARFor!==myId)return room;
+    room.varWindowOpen=false;room.pendingVARFor=null;
+    // If won and tails → reverse last goal
+    const shouldReverse=result.won&&choice==='tails';
+    if(shouldReverse&&room.lastEvent?.player){
+      const pid=room.lastEvent.player;
+      room.players[pid].goals=Math.max(0,(room.players[pid].goals||0)-1);
+    }
+    room.lastEvent={type:'var_resolved',won:result.won,choice,flip:result.flip,reversed:result.won&&choice==='tails',ts:Date.now()};
+    return room;
+  });
+  // Show result
+  const title=result.won?'✅ VAR نجح!':'❌ VAR فشل';
+  const sub=result.won?(choice==='tails'?'الحدث اتعكس — الهدف اتلغى':'الحدث اتأكد'):'الحدث فضل زي ما هو';
+  document.getElementById('var-result-title').textContent=title;
+  document.getElementById('var-result-sub').textContent=sub;
+  showOverlay('ov-var-result');
+}
+window.submitVAR=submitVAR;
+
+// ── PENALTY OVERLAY ──
+function renderPenaltyOverlay(){
+  const gs=gameState;
+  const myHand=me()?.hand||[];
+  const penOpts=document.getElementById('pen-options');
+  penOpts.innerHTML='';
+  const ownGoalCard=myHand.find(c=>c.id==='owngoal');
+  if(ownGoalCard){
+    const btn=document.createElement('button');
+    btn.className='btn-primary';
+    btn.textContent='🟢 العب أون جول — الغي البنلتي';
+    btn.onclick=()=>{closeOverlay('ov-penalty');selectedCardIdx=myHand.indexOf(ownGoalCard);playSelected();};
+    penOpts.appendChild(btn);
+  }
+  const burnBtn=document.createElement('button');
+  burnBtn.className='btn-secondary';
+  burnBtn.textContent='😬 احرق كارت — الهدف بيتسجل';
+  burnBtn.onclick=()=>{closeOverlay('ov-penalty');burnSelected();};
+  penOpts.appendChild(burnBtn);
+  showOverlay('ov-penalty');
+}
+
+// ── RESHUFFLE ──
+function openReshuffleOverlay(reshuffleCard){
+  pendingReshuffleUids=[];
+  const myHand=me()?.hand||[];
+  const container=document.getElementById('reshuffle-cards');
+  container.innerHTML='';
+  myHand.filter(c=>c.uid!==reshuffleCard.uid).forEach(card=>{
+    const div=document.createElement('div');
+    div.className='reshuffle-card';
+    div.innerHTML=`${cardIcon(card.id)} ${card.ar}`;
+    div.onclick=()=>{
+      if(div.classList.contains('chosen')){
+        div.classList.remove('chosen');
+        pendingReshuffleUids=pendingReshuffleUids.filter(u=>u!==card.uid);
+      }else if(pendingReshuffleUids.length<2){
+        div.classList.add('chosen');
+        pendingReshuffleUids.push(card.uid);
+      }
+      document.getElementById('reshuffle-count').textContent=
+        pendingReshuffleUids.length===0?'اختار 2 كروت':
+        pendingReshuffleUids.length===1?'اختار كارت تاني':
+        'تمام — اضغط بدّل';
+      document.getElementById('btn-reshuffle-confirm').disabled=pendingReshuffleUids.length!==2;
+    };
+    container.appendChild(div);
+  });
+  // Store reshuffle card uid to remove from hand
+  window._reshuffleCardUid=reshuffleCard.uid;
+  showOverlay('ov-reshuffle');
+}
+
+async function confirmReshuffle(){
+  closeOverlay('ov-reshuffle');
+  const{ref,runTransaction}=window._fbFns;
+  await runTransaction(ref(window._db,`rooms/${roomCode}`),(room)=>{
+    if(!room)return room;
+    let hand=[...(room.players[myId].hand||[])];
+    let dk=[...(room.deck||[])];let dp=[...(room.discardPile||[])];
+    // Remove reshuffle card itself
+    const ri=hand.findIndex(c=>c.uid===window._reshuffleCardUid);
+    if(ri!==-1)dp.push(hand.splice(ri,1)[0]);
+    // Remove chosen cards
+    pendingReshuffleUids.forEach(uid=>{
+      const i=hand.findIndex(c=>c.uid===uid);
+      if(i!==-1)dp.push(hand.splice(i,1)[0]);
+    });
+    // Draw replacements (2 + 1 for reshuffle itself = 3 cards? No: reshuffle is an action not a drawn replace)
+    // Draw 2 new cards
+    if(dk.length<2){dk=[...dk,...OwnGoalEngine.shuffle(dp)];dp=[];}
+    for(let i=0;i<2&&dk.length>0;i++)hand.push(dk.shift());
+    room.players[myId].hand=hand;room.deck=dk;room.discardPile=dp;
+    room.lastEvent={type:'reshuffle',player:myId,ts:Date.now()};
+    return room;
+  });
+  toast('ريشافل تم ✓');
+}
+window.confirmReshuffle=confirmReshuffle;
+
+// ── STRATEGY DRAW ──
+async function strategyPickDraw(n){
+  document.querySelectorAll('.draw-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById(`draw-${n}`).classList.add('selected');
+  document.getElementById('draw-hint').textContent=`سحبت ${n} — دلوقتي العب ${n}`;
+  // Draw n cards
+  const{ref,runTransaction}=window._fbFns;
+  await runTransaction(ref(window._db,`rooms/${roomCode}`),(room)=>{
+    if(!room||room.mode!=='strategy'||room.attacker!==myId||room.strategyDrawCount!==null)return room;
+    let hand=[...(room.players[myId].hand||[])];
+    let dk=[...(room.deck||[])];let dp=[...(room.discardPile||[])];
+    for(let i=0;i<n;i++){
+      if(dk.length===0){if(dp.length===0)break;dk=OwnGoalEngine.shuffle(dp);dp=[];}
+      if(dk.length>0)hand.push(dk.shift());
+    }
+    room.players[myId].hand=hand;room.deck=dk;room.discardPile=dp;
+    room.strategyDrawCount=n;
+    return room;
+  });
+}
+window.strategyPickDraw=strategyPickDraw;
+
+// ── GAME OVER ──
+function showGameOver(){
+  const gs=gameState;
+  const winner=gs.winner||getCurrentLeader(gs);
+  const iWon=winner===myId;
+  const myGoals=me()?.goals||0;
+  const oppGoals=opp()?.goals||0;
+  document.getElementById('go-icon').textContent=iWon?'🏆':'😤';
+  document.getElementById('go-title').textContent=iWon?`أسطورة يا ${me()?.name}!`:`فاز ${opp()?.name}`;
+  document.getElementById('go-score').textContent=`${myGoals} — ${oppGoals}`;
+  // Most fouled
+  const myFouls=me()?.fouls||0,oppFouls=opp()?.fouls||0;
+  const clownEl=document.getElementById('go-clown');
+  if(myFouls>0||oppFouls>0){
+    const clownPlayer=myFouls>oppFouls?me():opp();
+    const clownFouls=myFouls>oppFouls?myFouls:oppFouls;
+    if(clownPlayer){
+      clownEl.textContent=`😂 أكتر لاعب فاول: ${clownPlayer.name} (${clownFouls} فاول)`;
+      clownEl.classList.remove('hidden');
+    }
+  }else{clownEl.classList.add('hidden');}
+  showOverlay('ov-gameover');
+}
+
+async function doRestart(){
+  closeOverlay('ov-gameover');
+  const{ref,runTransaction}=window._fbFns;
+  await runTransaction(ref(window._db,`rooms/${roomCode}`),(room)=>{
+    if(!room||room.phase!=='gameover')return room;
+    const deck=OwnGoalEngine.buildDeck(room.mode);
+    const d1=OwnGoalEngine.dealHand(deck,4);
+    const d2=OwnGoalEngine.dealHand(d1.deck,4);
+    const firstAtk=Math.random()<.5?'p1':'p2';
+    room.phase='attack';room.deck=d2.deck;room.discardPile=[];
+    room.attacker=firstAtk;room.defender=firstAtk==='p1'?'p2':'p1';
+    room.ballState='loose';room.possession=null;room.attackSequence=[];
+    room.lastAttackCard=null;room.lastDefenseCard=null;
+    room.lastEvent={type:'rematch',ts:Date.now()};
+    room.pendingPenaltyFor=null;room.pendingVARFor=null;
+    room.varWindowOpen=false;room.winner=null;room.turnCount=0;
+    room.strategyDrawCount=null;room.strategyCardsPlayed=0;
+    room.players.p1.goals=0;room.players.p2.goals=0;
+    room.players.p1.fouls=0;room.players.p2.fouls=0;
+    room.players.p1.suspended=0;room.players.p2.suspended=0;
+    room.players.p1.yellowCard=false;room.players.p2.yellowCard=false;
+    room.players.p1.redCard=false;room.players.p2.redCard=false;
+    room.players.p1.hand=d1.hand;room.players.p2.hand=d2.hand;
+    return room;
+  });
+}
+window.doRestart=doRestart;
+
+// ── EVENT HANDLER ──
+function handleEvents(prev){
+  const gs=gameState;
+  const ev=gs.lastEvent;
+  if(!ev||!prev||ev.ts===prev?.lastEvent?.ts)return;
+  const msgEl=document.getElementById('event-msg');
+  const msgs={
+    goal:'⚽ هدف!',attack_succeeded:'✅ الهجوم نجح',defense_stole:'✂️ قاطع وأخد الكرة!',
+    defense_neutral:'🛡️ صد! الكرة لوز',foul_committed:'🦵 فاول!',penalty_awarded:'🥅 بنلتي!',
+    penalty_scored:'⚽ بنلتي — هدف!',penalty_saved:'✋ أون جول ألغى البنلتي',
+    var_resolved:ev.won?`📹 VAR ${ev.reversed?'عكس الحدث':'أكد الحدث'}`:'📹 VAR فشل',
+    reshuffle:'🔄 ريشافل تم',card_burned:'🔥 كارت اتحرق',
+    beaten:'😬 مفيش رد — الهجوم نجح',end_match:'🏁 نهاية الماتش',
+  };
+  const txt=msgs[ev.type]||ev.detail||'';
+  if(txt){msgEl.textContent=txt;setTimeout(()=>{if(msgEl.textContent===txt)msgEl.textContent='';},3000);}
+}
+
+// ── OVERLAYS ──
+function showOverlay(id){document.getElementById(id).classList.remove('hidden');}
+function closeOverlay(id){document.getElementById(id).classList.add('hidden');}
+window.closeOverlay=closeOverlay;
+
+// ── CARD HELPERS ──
+function typeClass(t){return t==='attack'?'atk':t==='defense'?'def':'spc';}
+function typeLabel(t){return{attack:'هجوم',defense:'دفاع',special:'خاص',earned:'مكسوب'}[t]||t;}
+const CARD_ICONS={pass:'🔀',dribble:'🌀',shot:'⚽',supershot:'⚡',assist:'🎯',goal:'🥅',chain:'⛓️',endmatch:'🏁',intercept:'✂️',tackle:'⛓️',goalkeeper:'🧤',blocksave:'🚫',blockshot:'🙅',block:'🛑',foul:'🦵',offside:'🚩',owngoal:'😂',var:'📹',reshuffle:'🔄',penalty:'🎯'};
+function cardIcon(id){return CARD_ICONS[id]||'🃏';}
+
+// ── BOOT ──
+window.addEventListener('DOMContentLoaded',()=>{
+  setTimeout(()=>showScreen('lobby'),900);
+});
+</script>
+</body>
+</html>
