@@ -1545,6 +1545,8 @@ async function doStart(){
     room.attacker=firstAtk;
     room.defender=firstAtk==='p1'?'p2':'p1';
     room.ballState='loose';
+    room.attackChain=[];room.chainPhase='idle';
+    ensureRoomAttackCard(room);
     room.lastEvent={type:'game_started',ts:Date.now()};
     return room;
   });
@@ -1607,10 +1609,13 @@ function syncUI(prev){
   // Handle new events
   handleEvents(prev);
 
-  // FIX 5: Check turnover (attacker has no attack cards)
+  // FIX 1+5: If attacker has no attack cards, fix it via Firebase transaction
   if(gameState.phase==='attack' && gameState.attacker===myId){
-    const to=OwnGoalEngine.checkTurnover(gameState);
-    if(to){ applyTurnover(); return; }
+    const myHand=gameState.players[myId]?.hand||[];
+    if(!myHand.some(c=>c.type==='attack')){
+      applyEnsureAttack();
+      return;
+    }
   }
 
   // VAR window
@@ -1958,19 +1963,65 @@ async function commitDefense(card,isBurn){
 }
 
 // ── ADVANCE TURN INSIDE TRANSACTION ──
+function ensureRoomAttackCard(room){
+  // Mirror of engine's ensureAttackCard — works directly on Firebase room object
+  const pid=room.attacker;
+  const hand=room.players[pid]?.hand||[];
+  if(hand.some(c=>c.type==='attack'))return; // already has attack card
+
+  let dk=[...(room.deck||[])];
+  let dp=[...(room.discardPile||[])];
+
+  let attempts=0;
+  while(attempts<8){
+    const h=room.players[pid].hand;
+    if(h.some(c=>c.type==='attack'))break;
+
+    // Find a non-attack card to swap (defense first, then special except endmatch)
+    let idx=h.findIndex(c=>c.type==='defense');
+    if(idx===-1)idx=h.findIndex(c=>c.type==='special'&&c.id!=='endmatch');
+    if(idx===-1)break; // only endmatch left
+
+    // If deck has no attack cards, merge discard in
+    if(!dk.some(c=>c.type==='attack')&&dp.length>0){
+      dk=[...dk,...OwnGoalEngine.shuffle(dp)];dp=[];
+    }
+    if(dk.length===0)break;
+
+    // Find first attack card in deck
+    const atkIdx=dk.findIndex(c=>c.type==='attack');
+    if(atkIdx===-1)break; // no attack cards anywhere
+
+    // Swap: remove non-attack from hand, put in deck middle, pull attack card
+    const newHand=[...room.players[pid].hand];
+    const[returned]=newHand.splice(idx,1);
+    const insertPos=Math.max(1,Math.floor(dk.length/2));
+    dk.splice(insertPos,0,returned);
+    const[newCard]=dk.splice(dk.findIndex(c=>c.type==='attack'),1);
+    newHand.push(newCard);
+    room.players[pid].hand=newHand;
+    attempts++;
+  }
+
+  room.deck=dk;
+  room.discardPile=dp;
+}
+
 function advanceRoomTurn(room,possessionResult){
   const{attacker,defender}=room;
   let na,nd,nb,np;
   if(possessionResult==='attacker'||possessionResult==='attack'){na=attacker;nd=defender;nb=attacker;np=attacker;}
-  else if(possessionResult==='defender'||possessionResult==='steal'){na=defender;nd=attacker;nb=defender;np=defender;}
+  else if(possessionResult==='defender'||possessionResult==='steal'||possessionResult==='owngoal'){na=defender;nd=attacker;nb=defender;np=defender;}
   else{na=defender;nd=attacker;nb='loose';np=null;}
   room.phase='attack';
   room.attacker=na;room.defender=nd;room.ballState=nb;room.possession=np;
   room.lastAttackCard=null;room.lastDefenseCard=null;
-  room.attackSequence=[];room.strategyDrawCount=null;room.strategyCardsPlayed=0;
+  room.attackChain=[];room.chainPhase='idle';
+  room.strategyDrawCount=null;room.strategyCardsPlayed=0;
   room.turnCount=(room.turnCount||0)+1;
-  // Decrement suspension
   ['p1','p2'].forEach(pid=>{if((room.players[pid]?.suspended||0)>0)room.players[pid].suspended--;});
+  // Guarantee new attacker has at least 1 attack card
+  ensureRoomAttackCard(room);
 }
 
 function roomToState(room){
@@ -2161,8 +2212,9 @@ async function doRestart(){
     const firstAtk=Math.random()<.5?'p1':'p2';
     room.phase='attack';room.deck=d2.deck;room.discardPile=[];
     room.attacker=firstAtk;room.defender=firstAtk==='p1'?'p2':'p1';
-    room.ballState='loose';room.possession=null;room.attackSequence=[];
+    room.ballState='loose';room.possession=null;room.attackChain=[];room.chainPhase='idle';
     room.lastAttackCard=null;room.lastDefenseCard=null;
+    ensureRoomAttackCard(room);
     room.lastEvent={type:'rematch',ts:Date.now()};
     room.pendingPenaltyFor=null;room.pendingVARFor=null;
     room.varWindowOpen=false;room.winner=null;room.turnCount=0;
@@ -2178,26 +2230,16 @@ async function doRestart(){
 }
 window.doRestart=doRestart;
 
-// FIX 5: Apply Turnover
-async function applyTurnover(){
+// FIX 1: Fix attacker's hand if they have no attack cards
+async function applyEnsureAttack(){
   const{ref,runTransaction}=window._fbFns;
   await runTransaction(ref(window._db,`rooms/${roomCode}`),(room)=>{
     if(!room||room.phase!=='attack')return room;
-    const attacker=room.attacker;
-    const hand=room.players[attacker]?.hand||[];
-    const hasAtk=hand.some(c=>c.type==='attack');
-    if(hasAtk)return room; // no longer needed
-    // Swap roles
-    room.attacker=room.defender;
-    room.defender=attacker;
-    room.ballState=room.attacker;
-    room.possession=room.attacker;
-    room.attackChain=[];room.chainPhase='idle';
-    room.lastAttackCard=null;room.lastDefenseCard=null;
-    room.lastEvent={type:'turnover',player:attacker,ts:Date.now()};
+    const hand=room.players[room.attacker]?.hand||[];
+    if(hand.some(c=>c.type==='attack'))return room; // already fixed
+    ensureRoomAttackCard(room);
     return room;
   });
-  toast('Turnover — مفيش كروت هجوم!');
 }
 
 // FIX 4: Play Chain interrupt
