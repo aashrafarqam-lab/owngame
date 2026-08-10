@@ -478,9 +478,9 @@ body{font-family:'Cairo',sans-serif;color:var(--text);overscroll-behavior:none}
 // ─────────────────────────────────────────────
 const CARDS = {
   // ── ATTACK ──
-  pass:       { id:'pass',       ar:'باص',           en:'Pass',         type:'attack',  qty:15, desc:'ابدأ الهجوم أو استمر فيه' },
-  dribble:    { id:'dribble',    ar:'دريبل',         en:'Dribble',      type:'attack',  qty:5,  desc:'تقدم بالكرة' },
-  shot:       { id:'shot',       ar:'شوطة',          en:'Shot Goal',    type:'attack',  qty:5,  desc:'سدد على المرمى' },
+  pass:       { id:'pass',       ar:'باص',           en:'Pass',         type:'attack',  qty:20, desc:'ابدأ الهجوم أو استمر فيه' },
+  dribble:    { id:'dribble',    ar:'دريبل',         en:'Dribble',      type:'attack',  qty:10, desc:'تقدم بالكرة' },
+  shot:       { id:'shot',       ar:'شوطة',          en:'Shot Goal',    type:'attack',  qty:8,  desc:'سدد على المرمى' },
   supershot:  { id:'supershot',  ar:'سوبر شوت',      en:'Super Shot',   type:'attack',  qty:2,  desc:'تسديدة لا يوقفها إلا Block Save' },
   assist:     { id:'assist',     ar:'اسيست',         en:'Assist',       type:'attack',  qty:5,  twoVtwoOnly:true, desc:'2v2 بس — مرر للزميل' },
   goal:       { id:'goal',       ar:'جول',           en:'Goal',         type:'attack',  qty:5,  twoVtwoOnly:true, desc:'2v2 بس — سجل بعد أسيست' },
@@ -630,7 +630,46 @@ function drawCard(state, playerId) {
   const card = dk.shift();
   const player = { ...state.players[playerId] };
   player.hand = [...player.hand, card];
-  return { ...state, deck: dk, discardPile: dp, players: { ...state.players, [playerId]: player } };
+  let newState = { ...state, deck: dk, discardPile: dp, players: { ...state.players, [playerId]: player } };
+
+  // FIX 1: Guarantee minimum 1 attack card in hand after every draw
+  // If player ends up with zero attack cards, silently swap a defense card
+  // back to the deck and draw again until they have at least 1 attack card.
+  // Max 4 attempts to avoid infinite loop if deck is exhausted.
+  let attempts = 0;
+  while (attempts < 4) {
+    const currentHand = newState.players[playerId].hand;
+    const hasAttack = currentHand.some(c => c.type === 'attack' || c.id === 'endmatch');
+    if (hasAttack) break;
+
+    // Find a defense card to swap back
+    const defIdx = currentHand.findIndex(c => c.type === 'defense');
+    if (defIdx === -1) break; // no defense cards to swap (all special), stop
+
+    let swapDk = [...newState.deck];
+    let swapDp = [...newState.discardPile];
+
+    // Swap: remove defense card from hand, put back in deck, draw new card
+    const swapPlayer = { ...newState.players[playerId] };
+    const swapHand = [...swapPlayer.hand];
+    const [returned] = swapHand.splice(defIdx, 1);  // remove defense card
+    const insertPos = Math.floor(swapDk.length / 2);
+    swapDk.splice(insertPos, 0, returned);           // put back in deck middle
+
+    // Draw a new card to replace it — hand size stays the same
+    if (swapDk.length === 0) {
+      if (swapDp.length === 0) { swapHand.splice(defIdx, 0, returned); break; } // revert if empty
+      swapDk = shuffle(swapDp); swapDp = [];
+    }
+    const newCard = swapDk.shift();
+    swapHand.push(newCard);                          // hand size: same as before swap
+    swapPlayer.hand = swapHand;
+
+    newState = { ...newState, deck: swapDk, discardPile: swapDp, players: { ...newState.players, [playerId]: swapPlayer } };
+    attempts++;
+  }
+
+  return newState;
 }
 
 function drawCards(state, playerId, count) {
@@ -648,19 +687,94 @@ function discardFromHand(state, playerId, cardUid) {
 }
 
 // ─────────────────────────────────────────────
-// FIX 5: TURNOVER CHECK
-// If attacker has no attack cards → automatic turnover
+// FIX 1+5: ENSURE ATTACK CARD — called at start of attack phase
+// If attacker has no attack cards, silently swap defense cards for attack
+// cards from the deck until they have at least 1.
+// This is the primary protection. Turnover is the last resort fallback.
 // ─────────────────────────────────────────────
+function ensureAttackCard(state) {
+  const playerId = state.attacker;
+  const player = state.players[playerId];
+  const hand = player.hand || [];
+  
+  // Already has attack card — nothing to do
+  if (hand.some(c => c.type === 'attack')) return state;
+  
+  // Try to swap non-attack cards for attack cards
+  let currentState = state;
+  let attempts = 0;
+  
+  while (attempts < 8) {
+    const currentHand = currentState.players[playerId].hand;
+    if (currentHand.some(c => c.type === 'attack')) break;
+    
+    // Find a non-attack card to return to deck (defense first, then special)
+    let defIdx = currentHand.findIndex(c => c.type === 'defense');
+    if (defIdx === -1) defIdx = currentHand.findIndex(c => c.type === 'special' && c.id !== 'endmatch');
+    if (defIdx === -1) break; // only endmatch left, truly stuck
+    
+    let dk = [...currentState.deck];
+    let dp = [...currentState.discardPile];
+    
+    // KEY FIX: If deck has no attack cards, merge discard into deck first
+    // This ensures attack cards buried in discard are reachable
+    const deckHasAtk = dk.some(c => c.type === 'attack');
+    if (!deckHasAtk && dp.length > 0) {
+      dk = shuffle([...dk, ...dp]);
+      dp = [];
+    }
+    
+    if (dk.length === 0) break; // completely out of cards
+    
+    const currentPlayer = { ...currentState.players[playerId] };
+    const currentHand2 = [...currentPlayer.hand];
+    const [returned] = currentHand2.splice(defIdx, 1);
+    
+    // Try to draw an attack card specifically
+    // Look ahead in deck for first attack card
+    const atkIdxInDeck = dk.findIndex(c => c.type === 'attack');
+    
+    if (atkIdxInDeck === -1) {
+      // No attack cards anywhere — put returned card back and stop
+      currentHand2.splice(defIdx, 0, returned);
+      break;
+    }
+    
+    // Put the non-attack card into the deck at a random spot
+    const insertPos = Math.max(1, Math.floor(dk.length / 2));
+    dk.splice(insertPos, 0, returned);
+    
+    // Pull the attack card out of the deck (reindex after insert)
+    const newAtkIdx = dk.findIndex(c => c.type === 'attack');
+    const [newCard] = dk.splice(newAtkIdx, 1);
+    currentHand2.push(newCard);
+    currentPlayer.hand = currentHand2;
+    
+    currentState = { 
+      ...currentState, 
+      deck: dk, 
+      discardPile: dp,
+      players: { ...currentState.players, [playerId]: currentPlayer }
+    };
+    attempts++;
+  }
+  
+  return currentState;
+}
+
+// FIX 5: TURNOVER CHECK — last resort fallback
+// Only fires if ensureAttackCard couldn't find any attack cards
+// (i.e. deck is completely exhausted of attack cards)
 function checkTurnover(state) {
   const attacker = state.players[state.attacker];
   const hasAttack = (attacker.hand || []).some(c => c.type === 'attack');
   if (!hasAttack && state.phase === 'attack') {
     return {
-      ...advanceTurn(state, 'defender'), // possession to other player
+      ...advanceTurn(state, 'defender'),
       lastEvent: { type: 'turnover', player: state.attacker, detail: 'مفيش كروت هجوم — Turnover تلقائي' },
     };
   }
-  return null; // no turnover
+  return null;
 }
 
 // ─────────────────────────────────────────────
@@ -912,20 +1026,21 @@ function advanceTurn(state, possessionResult) {
     // loose/neutral: roles swap, ball loose
     na = defender; nd = attacker; nb = 'loose'; np = null;
   }
-  return {
+  const advanced = {
     ...state,
     phase: 'attack', attacker: na, defender: nd, ballState: nb, possession: np,
     lastAttackCard: null, lastDefenseCard: null,
     attackChain: [], chainPhase: 'idle',
     strategyDrawCount: null, strategyCardsPlayed: 0,
     turnCount: (state.turnCount || 0) + 1,
-    // Decrement suspension
     players: {
       ...state.players,
       p1: { ...state.players.p1, suspended: Math.max(0, (state.players.p1.suspended || 0) - (state.players.p1.suspended > 0 ? 1 : 0)) },
       p2: { ...state.players.p2, suspended: Math.max(0, (state.players.p2.suspended || 0) - (state.players.p2.suspended > 0 ? 1 : 0)) },
     },
   };
+  // FIX 1: Ensure new attacker always has at least 1 attack card
+  return ensureAttackCard(advanced);
 }
 
 function applyFoulPenalties(state, defenderId, foulResult) {
@@ -1013,6 +1128,8 @@ function processAction(state, action) {
   if (type === 'play_attack') {
     if (state.phase !== 'attack') return { error: 'مش وقت الهجوم' };
     if (state.attacker !== playerId) return { error: 'مش دورك تهاجم' };
+    // FIX 1: Ensure attacker has at least 1 attack card before processing
+    state = ensureAttackCard(state);
     // FIX 7: Strategy Mode — must draw first
     if (state.mode === 'strategy' && state.strategyDrawCount === null) return { error: 'لازم تختار كام تسحب الأول' };
 
@@ -1221,7 +1338,7 @@ const OwnGoalEngine = {
   getPlayableCards, resolveDuel, resolveFoul, resolvePenalty,
   resolveVAR, resolveReshuffle, scoreGoal, checkWin,
   advanceTurn, applyFoulPenalties, strategyStartTurn,
-  processAction, checkTurnover, getCurrentLeader,
+  processAction, checkTurnover, ensureAttackCard, getCurrentLeader,
 };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = OwnGoalEngine;
