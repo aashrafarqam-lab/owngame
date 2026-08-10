@@ -127,7 +127,7 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
   background:rgba(3,5,8,.92);
   border-top:1px solid rgba(255,255,255,.08);
   border-radius:28px 28px 0 0;
-  padding:28px 24px 44px;
+  padding:18px 20px 36px;
   backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);
   position:relative;z-index:2;
   animation:sheetUp .5s cubic-bezier(.32,0,.67,0) .2s both;
@@ -136,36 +136,36 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
 .sheet-handle{
   width:36px;height:4px;border-radius:2px;
   background:rgba(255,255,255,.15);
-  margin:0 auto 20px;
+  margin:0 auto 14px;
 }
 .inp-name{
-  width:100%;padding:15px 18px;
+  width:100%;padding:12px 16px;
   background:rgba(255,255,255,.05);
   border:1px solid rgba(255,255,255,.1);
   border-radius:var(--r2);
-  color:var(--t1);font-family:'Cairo';font-size:17px;
+  color:var(--t1);font-family:'Cairo';font-size:14px;
   outline:none;transition:all .2s;text-align:right;
-  margin-bottom:12px;
+  margin-bottom:10px;
 }
 .inp-name:focus{border-color:rgba(201,168,76,.45);background:rgba(255,255,255,.07)}
 .inp-name::placeholder{color:var(--t3)}
 
 /* CTA — the ONLY button */
 .btn-cta{
-  width:100%;padding:17px;
+  width:100%;padding:13px;
   background:linear-gradient(135deg,#d4aa50 0%,#9a7220 55%,#c9a84c 100%);
   border-radius:var(--r2);
-  color:#030508;font-size:16px;font-weight:900;letter-spacing:.5px;
-  box-shadow:0 6px 28px rgba(201,168,76,.35),0 1px 0 rgba(255,255,255,.3) inset;
+  color:#030508;font-size:14px;font-weight:900;letter-spacing:.5px;
+  box-shadow:0 4px 20px rgba(201,168,76,.35),0 1px 0 rgba(255,255,255,.3) inset;
   transition:transform .12s,box-shadow .12s;
-  margin-bottom:12px;
+  margin-bottom:10px;
 }
 .btn-cta:active{transform:scale(.97);box-shadow:0 2px 12px rgba(201,168,76,.25)}
 
 /* Secondary link style — not a box */
 .btn-link{
   display:block;text-align:center;
-  padding:12px;color:var(--t2);font-size:13px;
+  padding:10px;color:var(--t2);font-size:12px;
   border:1px solid var(--border);border-radius:var(--r2);
   transition:color .18s,border-color .18s;
 }
@@ -192,15 +192,17 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
 /* Mode picker — minimal, inside room screen */
 .mode-toggle{display:flex;gap:6px;margin-bottom:12px}
 .mode-chip{
-  flex:1;padding:11px 8px;
+  flex:1;padding:9px 6px;
   background:rgba(255,255,255,.04);border:1px solid var(--border);
   border-radius:var(--r);
-  color:var(--t3);font-size:11px;font-weight:700;text-align:center;
+  color:var(--t3);font-size:10px;font-weight:700;text-align:center;
   transition:all .18s;
 }
 .mode-chip.sel{border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.08);color:var(--g1)}
-.mode-chip-icon{display:block;font-size:18px;margin-bottom:4px}
+.mode-chip-icon{display:block;font-size:16px;margin-bottom:3px}
 
+/* Section label */
+.lobby-section-label{font-size:9px;color:var(--t3);letter-spacing:3px;text-transform:uppercase;margin-bottom:7px}
 /* Tunnel mode selector */
 .tunnel-mode-row{display:flex;gap:6px;margin-bottom:12px}
 .tmode-btn{
@@ -808,13 +810,29 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
   <div class="lobby-sheet">
     <div class="sheet-handle"></div>
     <input id="inp-name" class="inp-name" type="text" placeholder="اسمك هنا..." maxlength="16" autocomplete="off">
-    <!-- Mode toggle right here, compact -->
+    <!-- Game mode toggle -->
     <div class="mode-toggle">
       <button class="mode-chip sel" id="mode-luck" onclick="selectMode('luck')">
         <span class="mode-chip-icon">🎲</span>حظ
       </button>
       <button class="mode-chip" id="mode-strategy" onclick="selectMode('strategy')">
         <span class="mode-chip-icon">🧠</span>استراتيجية
+      </button>
+    </div>
+    <!-- Tunnel / theme selector — default B -->
+    <div class="lobby-section-label">جو الانتظار</div>
+    <div class="tunnel-mode-row" style="margin-bottom:10px">
+      <button class="tmode-btn" id="lobby-tmode-a" onclick="selectTunnelMode('a')">
+        <span class="tmode-icon">🌆</span>
+        <span class="tmode-label">الشارع</span>
+      </button>
+      <button class="tmode-btn sel" id="lobby-tmode-b" onclick="selectTunnelMode('b')">
+        <span class="tmode-icon">🏟️</span>
+        <span class="tmode-label">الكورة</span>
+      </button>
+      <button class="tmode-btn" id="lobby-tmode-c" onclick="selectTunnelMode('c')">
+        <span class="tmode-icon">☕</span>
+        <span class="tmode-label">الأهوة</span>
       </button>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px">
@@ -3528,8 +3546,14 @@ let selectedTunnelMode = 'b';
 
 function selectTunnelMode(mode){
   selectedTunnelMode = mode;
+  // Sync room screen buttons
   ['a','b','c'].forEach(m => {
     const btn = document.getElementById('tmode-'+m);
+    if(btn) btn.classList.toggle('sel', m === mode);
+  });
+  // Sync lobby screen buttons
+  ['a','b','c'].forEach(m => {
+    const btn = document.getElementById('lobby-tmode-'+m);
     if(btn) btn.classList.toggle('sel', m === mode);
   });
   TunnelSystem.setMode(mode);
