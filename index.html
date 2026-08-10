@@ -3,241 +3,959 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0a0a0f">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Own Goal</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#080509">
+<title>دبلة — DOBLA</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
-/* ── TOKENS ── */
+/* ═══════════════════════════════════════════
+   DOBLA — TOKEN SYSTEM
+   Seed: Cairo café table, floodlights, linen cards
+═══════════════════════════════════════════ */
 :root{
-  --ink:#0a0a0f;
-  --surface:#12121a;
-  --raise:#1c1c28;
-  --border:#ffffff12;
-  --border2:#ffffff22;
-  --text:#f0f0f0;
-  --muted:#6b6b80;
-  --atk:#e63946;
-  --def:#3a7bd5;
-  --spc:#9b5de5;
-  --gold:#ffd166;
-  --green:#06d6a0;
-  --r:14px;
-  --card-w:76px;
-  --card-h:112px;
+  /* Core palette */
+  --void:        #080509;
+  --void2:       #0e0b11;
+  --pitch-dark:  #0a1a0a;
+  --pitch-mid:   #0d1f0d;
+  --pitch-light: #122612;
+  --glass:       rgba(255,255,255,0.035);
+  --glass2:      rgba(255,255,255,0.06);
+  --glass3:      rgba(255,255,255,0.10);
+  --border:      rgba(255,255,255,0.08);
+  --border2:     rgba(255,255,255,0.14);
+
+  /* Identity */
+  --gold:        #c9a84c;
+  --gold2:       #e8c96a;
+  --gold-dim:    rgba(201,168,76,0.12);
+  --gold-glow:   rgba(201,168,76,0.25);
+  --cream:       #f2ead8;
+  --cream2:      #e8dfc8;
+  --linen:       #ede3cc;
+
+  /* Card type accents */
+  --atk:         #c8303a;
+  --atk-dim:     rgba(200,48,58,0.15);
+  --atk-glow:    rgba(200,48,58,0.35);
+  --def:         #1a3f6f;
+  --def-bright:  #2a5fa0;
+  --def-dim:     rgba(26,63,111,0.2);
+  --spc:         #5a1a8a;
+  --spc-bright:  #8a30c0;
+  --spc-dim:     rgba(90,26,138,0.2);
+
+  /* Text */
+  --text:        #f0ead8;
+  --text2:       #b8ae98;
+  --text3:       #786e58;
+  --muted:       #5a5248;
+
+  /* Radius */
+  --r-card:      12px;
+  --r-panel:     18px;
+  --r-btn:       10px;
+
+  /* Card dims */
+  --cw: 72px;
+  --ch: 106px;
 }
+
+/* ─── RESET ─── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:var(--ink)}
+html,body{height:100%;overflow:hidden;background:var(--void)}
 body{font-family:'Cairo',sans-serif;color:var(--text);overscroll-behavior:none}
 .hidden{display:none!important}
+button{cursor:pointer;font-family:'Cairo',sans-serif}
 
-/* ── SCREENS ── */
-.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;overflow-y:auto;overflow-x:hidden;z-index:10}
+/* ─── SCREENS ─── */
+.screen{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;align-items:center;
+  overflow-y:auto;overflow-x:hidden;z-index:10;
+}
 
-/* ── LOADING ── */
-#s-loading{justify-content:center;background:var(--ink)}
-.load-logo{font-size:52px;font-weight:900;letter-spacing:-2px;color:var(--gold);text-align:center}
-.load-sub{font-size:13px;color:var(--muted);margin-top:8px;letter-spacing:2px}
-.load-dots{display:flex;gap:8px;margin-top:32px;justify-content:center}
-.load-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);animation:ldot 1.2s ease-in-out infinite}
+/* ══════════════════════════════════════════
+   LOADING SCREEN
+══════════════════════════════════════════ */
+#s-loading{
+  justify-content:center;
+  background:var(--void);
+}
+.load-wrap{text-align:center;position:relative}
+.load-glow{
+  position:absolute;
+  width:300px;height:300px;
+  background:radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%);
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  pointer-events:none;
+}
+.load-logo-wrap{position:relative;z-index:2}
+.load-logo-ar{
+  font-size:64px;font-weight:900;
+  color:var(--gold);
+  letter-spacing:-2px;line-height:0.9;
+  text-shadow:0 0 40px rgba(201,168,76,0.3);
+}
+.load-logo-en{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:22px;letter-spacing:10px;
+  color:var(--text3);margin-top:4px;
+}
+.load-line{
+  width:1px;height:40px;
+  background:linear-gradient(to bottom, transparent, var(--gold), transparent);
+  margin:16px auto;
+}
+.load-sub{font-size:10px;color:var(--text3);letter-spacing:4px}
+.load-dots{display:flex;gap:6px;margin-top:24px;justify-content:center}
+.load-dot{
+  width:4px;height:4px;border-radius:50%;
+  background:var(--gold);opacity:0.3;
+  animation:ldot 1.4s ease-in-out infinite;
+}
 .load-dot:nth-child(2){animation-delay:.2s}
 .load-dot:nth-child(3){animation-delay:.4s}
-@keyframes ldot{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+@keyframes ldot{0%,80%,100%{opacity:.2;transform:scale(.7)}40%{opacity:1;transform:scale(1)}}
 
-/* ── LOBBY ── */
-#s-lobby{justify-content:flex-start;background:var(--ink)}
-.lobby-header{width:100%;padding:52px 24px 28px;text-align:center;flex-shrink:0}
-.game-logo{font-size:48px;font-weight:900;color:var(--text);letter-spacing:-2px;line-height:1}
-.game-logo span{color:var(--atk)}
-.game-tagline{font-size:12px;color:var(--muted);letter-spacing:3px;margin-top:6px;text-transform:uppercase}
-.pitch-line{width:64px;height:2px;background:var(--atk);margin:16px auto 0;border-radius:1px}
+/* Floodlight god rays on loading */
+.load-rays{
+  position:fixed;inset:0;pointer-events:none;overflow:hidden;
+  background:
+    radial-gradient(ellipse 60px 180px at 20% 0%, rgba(201,168,76,0.04) 0%, transparent 100%),
+    radial-gradient(ellipse 60px 180px at 50% 0%, rgba(201,168,76,0.06) 0%, transparent 100%),
+    radial-gradient(ellipse 60px 180px at 80% 0%, rgba(201,168,76,0.04) 0%, transparent 100%);
+}
 
-.lobby-body{width:100%;max-width:400px;padding:0 24px 48px;display:flex;flex-direction:column;gap:16px}
+/* ══════════════════════════════════════════
+   LOBBY SCREEN
+══════════════════════════════════════════ */
+#s-lobby{
+  justify-content:flex-start;
+  background:var(--void);
+}
+/* Ambient pitch lines on lobby */
+#s-lobby::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 80% 40% at 50% 100%, rgba(13,31,13,0.8) 0%, transparent 100%),
+    radial-gradient(ellipse 120% 60% at 50% 50%, rgba(8,5,9,0) 0%, var(--void) 100%);
+}
+.lobby-rays{
+  position:fixed;top:0;left:0;right:0;height:40vh;pointer-events:none;z-index:0;
+  background:
+    conic-gradient(from 270deg at 25% 0%, transparent 88deg, rgba(201,168,76,0.025) 90deg, transparent 92deg),
+    conic-gradient(from 270deg at 50% 0%, transparent 88deg, rgba(201,168,76,0.035) 90deg, transparent 92deg),
+    conic-gradient(from 270deg at 75% 0%, transparent 88deg, rgba(201,168,76,0.025) 90deg, transparent 92deg);
+}
+.lobby-inner{
+  position:relative;z-index:1;
+  width:100%;max-width:400px;
+  padding:0 24px 48px;
+  display:flex;flex-direction:column;gap:0;
+}
+.lobby-header{padding:48px 0 32px;text-align:center}
+.logo-ar{
+  font-size:52px;font-weight:900;
+  color:var(--gold);letter-spacing:-2px;line-height:1;
+  text-shadow:0 0 60px rgba(201,168,76,0.25);
+}
+.logo-en{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:14px;letter-spacing:8px;
+  color:var(--text3);margin-top:2px;
+}
+.logo-rule{
+  width:48px;height:1px;
+  background:linear-gradient(90deg, transparent, var(--gold), transparent);
+  margin:12px auto 0;
+}
+.logo-tag{
+  font-size:10px;color:var(--text3);letter-spacing:3px;
+  margin-top:8px;text-transform:uppercase;
+}
 
-.field-group{display:flex;flex-direction:column;gap:6px}
-.field-label{font-size:11px;color:var(--muted);letter-spacing:2px}
-.field-input{width:100%;padding:14px 16px;background:var(--raise);border:1.5px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'Cairo',sans-serif;font-size:16px;outline:none;transition:border-color .18s;text-align:right}
-.field-input:focus{border-color:var(--gold)}
+/* Input fields */
+.field-stack{display:flex;flex-direction:column;gap:14px;margin-bottom:20px}
+.field-group{display:flex;flex-direction:column;gap:5px}
+.field-label{font-size:10px;color:var(--text3);letter-spacing:2px}
+.field-input{
+  width:100%;padding:13px 16px;
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:var(--r-btn);
+  color:var(--text);
+  font-family:'Cairo',sans-serif;font-size:16px;
+  outline:none;transition:border-color .18s;
+  text-align:right;
+}
+.field-input:focus{border-color:rgba(201,168,76,0.4)}
 .field-input::placeholder{color:var(--muted)}
 
-.mode-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.mode-btn{padding:14px 10px;background:var(--raise);border:1.5px solid var(--border);border-radius:var(--r);color:var(--muted);font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;text-align:center}
-.mode-btn.selected{border-color:var(--gold);color:var(--gold);background:rgba(255,209,102,.08)}
-.mode-btn-icon{font-size:22px;display:block;margin-bottom:4px}
+/* Mode selector */
+.mode-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.mode-btn{
+  padding:14px 10px;
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:var(--r-btn);
+  color:var(--text3);
+  font-size:12px;font-weight:700;
+  text-align:center;transition:all .18s;
+}
+.mode-btn.sel{
+  border-color:rgba(201,168,76,0.5);
+  background:var(--gold-dim);
+  color:var(--gold);
+}
+.mode-icon{font-size:20px;display:block;margin-bottom:4px}
+.mode-desc{font-size:9px;color:var(--text3);margin-top:3px;font-weight:400}
 
-.action-stack{display:flex;flex-direction:column;gap:10px;margin-top:4px}
-.btn-primary{width:100%;padding:16px;background:var(--atk);border:none;border-radius:var(--r);color:white;font-family:'Cairo',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:transform .12s,opacity .12s;letter-spacing:.5px}
+/* Buttons */
+.btn-primary{
+  width:100%;padding:15px;
+  background:linear-gradient(135deg, var(--gold) 0%, #a8882a 100%);
+  border:none;border-radius:var(--r-btn);
+  color:var(--void);
+  font-size:15px;font-weight:900;letter-spacing:.5px;
+  transition:transform .12s,opacity .12s;
+  position:relative;overflow:hidden;
+}
+.btn-primary::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.15) 0%,transparent 50%);
+  pointer-events:none;
+}
 .btn-primary:active{transform:scale(.97);opacity:.9}
-.btn-secondary{width:100%;padding:14px;background:transparent;border:1.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'Cairo',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:border-color .18s}
-.btn-secondary:active{border-color:var(--def)}
-
-.divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px}
+.btn-secondary{
+  width:100%;padding:13px;
+  background:transparent;
+  border:1px solid var(--border2);
+  border-radius:var(--r-btn);
+  color:var(--text2);
+  font-size:14px;font-weight:600;
+  transition:border-color .18s,color .18s;
+}
+.btn-secondary:active{border-color:var(--gold);color:var(--gold)}
+.btn-stack{display:flex;flex-direction:column;gap:8px}
+.divider{
+  display:flex;align-items:center;gap:10px;
+  color:var(--text3);font-size:10px;letter-spacing:2px;
+  margin:4px 0;
+}
 .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
 
-.join-panel{display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--raise);border:1.5px solid var(--border);border-radius:var(--r)}
-.join-panel.hidden{display:none}
-.code-input{width:100%;padding:14px;background:var(--ink);border:1.5px solid var(--border);border-radius:10px;color:var(--gold);font-family:'Cairo',sans-serif;font-size:28px;text-align:center;letter-spacing:10px;text-transform:uppercase;outline:none;font-weight:700}
+/* Join panel */
+.join-panel{
+  display:flex;flex-direction:column;gap:8px;
+  padding:14px;
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:var(--r-panel);
+  margin-top:4px;
+}
+.code-input{
+  width:100%;padding:12px;
+  background:var(--void);
+  border:1px solid var(--border2);
+  border-radius:var(--r-btn);
+  color:var(--gold);
+  font-family:'Bebas Neue',sans-serif;
+  font-size:36px;text-align:center;letter-spacing:12px;
+  outline:none;text-transform:uppercase;
+}
 .code-input:focus{border-color:var(--gold)}
-.code-input::placeholder{color:var(--muted);font-size:14px;letter-spacing:2px}
+.code-input::placeholder{color:var(--muted);font-size:12px;letter-spacing:2px;font-family:'Cairo',sans-serif}
 
-/* ── WAITING ROOM ── */
-#s-room{justify-content:center;background:var(--ink);gap:28px;padding:32px 24px}
-.room-code-panel{background:var(--raise);border:1.5px solid var(--border2);border-radius:20px;padding:24px 36px;text-align:center}
-.rcp-label{font-size:10px;color:var(--muted);letter-spacing:3px;margin-bottom:8px}
-.rcp-code{font-size:56px;font-weight:900;color:var(--gold);letter-spacing:14px;line-height:1}
-.rcp-hint{font-size:11px;color:var(--muted);margin-top:8px}
-.copy-btn{margin-top:12px;padding:8px 20px;background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.25);border-radius:8px;color:var(--gold);font-family:'Cairo',sans-serif;font-size:12px;cursor:pointer}
+/* ══════════════════════════════════════════
+   WAITING ROOM
+══════════════════════════════════════════ */
+#s-room{
+  justify-content:center;gap:24px;
+  padding:32px 24px;
+  background:var(--void);
+}
+.room-code-panel{
+  background:var(--glass);
+  border:1px solid rgba(201,168,76,0.2);
+  border-radius:var(--r-panel);
+  padding:24px 32px;text-align:center;
+  position:relative;overflow:hidden;
+}
+.room-code-panel::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+}
+.rcp-label{font-size:9px;color:var(--text3);letter-spacing:3px;margin-bottom:6px}
+.rcp-code{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:52px;color:var(--gold);letter-spacing:12px;line-height:1;
+  text-shadow:0 0 30px rgba(201,168,76,0.3);
+}
+.rcp-hint{font-size:10px;color:var(--text3);margin-top:6px}
+.copy-btn{
+  margin-top:10px;padding:6px 16px;
+  background:var(--gold-dim);
+  border:1px solid rgba(201,168,76,0.25);
+  border-radius:6px;color:var(--gold);
+  font-family:'Cairo',sans-serif;font-size:11px;
+}
+.vs-panel{
+  width:100%;max-width:320px;
+  display:flex;align-items:center;gap:12px;
+}
+.player-slot{
+  flex:1;
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:var(--r-panel);
+  padding:14px 12px;text-align:center;
+  transition:all .3s;
+}
+.player-slot.active{border-color:rgba(201,168,76,0.35)}
+.ps-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--muted);margin:0 auto 8px;
+  transition:all .3s;
+}
+.ps-dot.on{
+  background:var(--gold);
+  box-shadow:0 0 10px rgba(201,168,76,0.5);
+}
+.ps-name{font-size:13px;font-weight:700}
+.ps-name.wait{font-size:10px;color:var(--text3);font-style:italic}
+.vs-sep{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:22px;color:var(--atk);flex-shrink:0;
+}
+.room-status{font-size:12px;color:var(--text3);text-align:center}
+.room-actions{
+  display:flex;flex-direction:column;gap:8px;
+  width:100%;max-width:320px;
+}
 
-.vs-panel{width:100%;max-width:320px;display:flex;align-items:center;gap:12px}
-.player-card{flex:1;background:var(--raise);border:1.5px solid var(--border);border-radius:16px;padding:16px 12px;text-align:center;transition:all .3s}
-.player-card.active{border-color:var(--green)}
-.pc-dot{width:10px;height:10px;border-radius:50%;background:var(--muted);margin:0 auto 10px;transition:all .3s}
-.pc-dot.on{background:var(--green);box-shadow:0 0 10px rgba(6,214,160,.6)}
-.pc-name{font-size:14px;font-weight:700}
-.pc-name.waiting{font-size:11px;color:var(--muted);font-weight:400;font-style:italic}
-.vs-sep{font-size:24px;font-weight:900;color:var(--atk);flex-shrink:0}
+/* ══════════════════════════════════════════
+   GAME SCREEN — THE PITCH
+══════════════════════════════════════════ */
+#s-game{
+  justify-content:space-between;
+  background:var(--void);
+  padding:0;
+}
 
-.room-status{font-size:13px;color:var(--muted);text-align:center}
-.room-actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px}
-
-/* ── GAME SCREEN ── */
-#s-game{justify-content:space-between;background:var(--ink);padding:0}
+/* Floodlight god rays — always on during game */
+.game-rays{
+  position:fixed;top:0;left:0;right:0;height:35vh;
+  pointer-events:none;z-index:0;
+  background:
+    conic-gradient(from 270deg at 15% 0%, transparent 88.5deg, rgba(201,168,76,0.03) 90deg, transparent 91.5deg),
+    conic-gradient(from 270deg at 35% 0%, transparent 88.5deg, rgba(201,168,76,0.04) 90deg, transparent 91.5deg),
+    conic-gradient(from 270deg at 50% 0%, transparent 88.5deg, rgba(201,168,76,0.05) 90deg, transparent 91.5deg),
+    conic-gradient(from 270deg at 65% 0%, transparent 88.5deg, rgba(201,168,76,0.04) 90deg, transparent 91.5deg),
+    conic-gradient(from 270deg at 85% 0%, transparent 88.5deg, rgba(201,168,76,0.03) 90deg, transparent 91.5deg);
+  transition:opacity .5s;
+}
+.game-rays.intense{
+  background:
+    conic-gradient(from 270deg at 15% 0%, transparent 87deg, rgba(201,168,76,0.05) 90deg, transparent 93deg),
+    conic-gradient(from 270deg at 35% 0%, transparent 87deg, rgba(201,168,76,0.07) 90deg, transparent 93deg),
+    conic-gradient(from 270deg at 50% 0%, transparent 87deg, rgba(201,168,76,0.09) 90deg, transparent 93deg),
+    conic-gradient(from 270deg at 65% 0%, transparent 87deg, rgba(201,168,76,0.07) 90deg, transparent 93deg),
+    conic-gradient(from 270deg at 85% 0%, transparent 87deg, rgba(201,168,76,0.05) 90deg, transparent 93deg);
+}
 
 /* Score bar */
-.scorebar{width:100%;padding:10px 16px 8px;background:rgba(10,10,15,.92);border-bottom:1px solid var(--border);flex-shrink:0;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.sb-inner{display:flex;align-items:center;justify-content:space-between;max-width:420px;margin:0 auto}
+.scorebar{
+  width:100%;
+  padding:10px 16px 8px;
+  background:rgba(8,5,9,0.95);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  position:relative;z-index:5;
+}
+.sb-inner{
+  display:flex;align-items:center;justify-content:space-between;
+  max-width:420px;margin:0 auto;
+}
 .sb-side{flex:1}
 .sb-side.mine{text-align:right}
-.sb-name{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+.sb-name{
+  font-size:9px;color:var(--text3);letter-spacing:1.5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;
+}
 .sb-name.mine{margin-left:auto;text-align:right}
-.sb-score{font-size:46px;font-weight:900;line-height:1;color:var(--text)}
-.sb-score.mine{color:var(--gold)}
-.sb-mid{text-align:center;padding:0 10px;flex-shrink:0}
-.sb-sep{font-size:15px;color:var(--muted);font-weight:700}
-.card-notifs{display:flex;gap:4px;justify-content:center;margin-top:4px}
-.ycard-badge{width:7px;height:10px;background:var(--gold);border-radius:1px}
-.rcard-badge{width:7px;height:10px;background:var(--atk);border-radius:1px}
-.suspended-badge{font-size:9px;color:var(--atk);border:1px solid var(--atk);border-radius:4px;padding:0 4px}
-
-/* Mode badge */
-.mode-badge{font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(155,93,229,.15);border:1px solid rgba(155,93,229,.3);color:#c084fc;margin-top:2px;display:inline-block}
+.sb-score{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:48px;line-height:1;color:var(--text2);
+  transition:transform .2s,color .3s;
+}
+.sb-score.mine{color:var(--gold);text-shadow:0 0 20px rgba(201,168,76,0.2)}
+.sb-score.popped{transform:scale(1.3);color:var(--gold2)}
+.sb-mid{text-align:center;padding:0 8px;flex-shrink:0}
+.sb-sep{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--text3)}
+.mode-badge{
+  font-size:8px;padding:2px 7px;
+  border-radius:8px;
+  background:rgba(201,168,76,0.1);
+  border:1px solid rgba(201,168,76,0.2);
+  color:var(--gold);letter-spacing:1px;
+  margin-top:3px;display:inline-block;
+}
+.card-notifs{display:flex;gap:3px;justify-content:center;margin-top:3px}
+.ycard{width:6px;height:9px;background:#d4a017;border-radius:1px}
+.rcard{width:6px;height:9px;background:var(--atk);border-radius:1px}
+.susp{font-size:8px;color:var(--atk);border:1px solid var(--atk);border-radius:3px;padding:0 3px}
 
 /* Possession bar */
-.poss-bar{width:100%;padding:5px 16px;background:rgba(0,0,0,.4);border-bottom:1px solid var(--border);text-align:center;font-size:11px;color:var(--muted);flex-shrink:0}
+.poss-bar{
+  width:100%;padding:4px 16px;
+  background:rgba(0,0,0,0.5);
+  border-bottom:1px solid var(--border);
+  text-align:center;font-size:10px;color:var(--text3);
+  flex-shrink:0;position:relative;z-index:4;letter-spacing:.5px;
+}
 .poss-name{color:var(--gold);font-weight:700}
 
-/* Opp hand */
-.opp-zone{width:100%;padding:6px 12px;display:flex;justify-content:center;gap:5px;flex-shrink:0;min-height:60px;align-items:center}
-.card-back{width:42px;height:60px;border-radius:8px;background:var(--raise);border:1px solid var(--border);position:relative;overflow:hidden}
-.card-back::after{content:'⬡';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--border2)}
+/* Opponent zone */
+.opp-zone{
+  width:100%;padding:6px 12px;
+  display:flex;justify-content:center;gap:4px;
+  flex-shrink:0;min-height:56px;align-items:center;
+  position:relative;z-index:3;
+}
 
-/* Play zone */
-.play-zone{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:8px 16px;position:relative}
-.clash-row{display:flex;gap:16px;align-items:center;justify-content:center}
-.play-slot{width:var(--card-w);height:var(--card-h);border-radius:var(--r);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);position:relative;overflow:hidden}
-.play-slot.filled{border:none}
-.clash-vs{font-size:16px;font-weight:900;color:var(--atk);flex-shrink:0}
-.status-msg{font-size:13px;font-weight:700;color:var(--gold);text-align:center;min-height:20px;letter-spacing:.3px;padding:0 12px}
-.event-msg{font-size:11px;color:var(--muted);text-align:center;min-height:16px;font-style:italic;padding:0 16px}
+/* ── CARD BACK ── */
+.card-back{
+  width:40px;height:58px;
+  border-radius:8px;
+  background:linear-gradient(155deg, var(--pitch-dark) 0%, #060e06 100%);
+  border:1px solid rgba(201,168,76,0.1);
+  position:relative;overflow:hidden;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(0,0,0,0.5);
+}
+.card-back::before{
+  content:'';position:absolute;inset:2px;
+  border:0.5px solid rgba(201,168,76,0.08);
+  border-radius:6px;
+}
+.card-back::after{
+  content:'⬡';position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:rgba(201,168,76,0.12);
+}
+
+/* ── LIQUID GLASS PITCH / PLAY ZONE ── */
+.play-zone{
+  flex:1;width:100%;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:10px;padding:8px 16px;
+  position:relative;z-index:3;
+}
+
+/* The glass pitch surface */
+.pitch-surface{
+  position:absolute;inset:0;
+  background:linear-gradient(
+    180deg,
+    rgba(13,31,13,0) 0%,
+    rgba(13,31,13,0.3) 40%,
+    rgba(13,31,13,0.5) 60%,
+    rgba(13,31,13,0.2) 100%
+  );
+  pointer-events:none;
+}
+/* Pitch center line */
+.pitch-surface::before{
+  content:'';position:absolute;
+  left:10%;right:10%;
+  top:50%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent);
+}
+/* Center circle glow */
+.pitch-surface::after{
+  content:'';position:absolute;
+  width:60px;height:60px;
+  border:1px solid rgba(255,255,255,0.04);
+  border-radius:50%;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+}
+
+.clash-row{
+  display:flex;gap:14px;align-items:center;justify-content:center;
+  position:relative;z-index:2;
+}
+/* Play slots */
+.play-slot{
+  width:var(--cw);height:var(--ch);
+  border-radius:var(--r-card);
+  border:1px dashed rgba(255,255,255,0.1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:var(--text3);
+  position:relative;overflow:hidden;
+  background:rgba(255,255,255,0.02);
+  /* Glass pitch reflection */
+  box-shadow:0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.play-slot.filled{border:none;background:transparent}
+.clash-vs{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:14px;color:var(--atk);flex-shrink:0;
+  opacity:.6;
+}
+.status-msg{
+  font-size:12px;font-weight:700;color:var(--gold);
+  text-align:center;min-height:18px;letter-spacing:.3px;
+  position:relative;z-index:2;
+}
+.event-msg{
+  font-size:10px;color:var(--text3);text-align:center;
+  min-height:14px;font-style:italic;
+  position:relative;z-index:2;
+}
 
 /* Action bar */
-.abar{width:100%;display:flex;gap:8px;padding:0 16px 6px;justify-content:center;flex-shrink:0;min-height:48px;align-items:center}
-.btn-play{padding:12px 28px;background:var(--green);border:none;border-radius:var(--r);color:var(--ink);font-family:'Cairo',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:transform .12s;display:none}
+.abar{
+  width:100%;
+  display:flex;gap:8px;padding:0 16px 4px;
+  justify-content:center;flex-shrink:0;
+  min-height:44px;align-items:center;
+  position:relative;z-index:4;
+}
+.btn-play{
+  padding:11px 24px;
+  background:linear-gradient(135deg, var(--gold) 0%, #a8882a 100%);
+  border:none;border-radius:var(--r-btn);
+  color:var(--void);font-size:14px;font-weight:900;
+  display:none;transition:transform .1s;
+  position:relative;overflow:hidden;
+}
+.btn-play::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.2) 0%,transparent 50%);
+  pointer-events:none;
+}
 .btn-play:active{transform:scale(.96)}
-.btn-burn{padding:10px 16px;background:transparent;border:1.5px solid var(--border2);border-radius:var(--r);color:var(--muted);font-family:'Cairo',sans-serif;font-size:12px;cursor:pointer;display:none}
-.btn-burn:active{opacity:.7}
+.btn-burn{
+  padding:9px 14px;
+  background:transparent;
+  border:1px solid var(--border2);
+  border-radius:var(--r-btn);
+  color:var(--text3);font-size:11px;
+  display:none;
+}
 
 /* Strategy draw bar */
-.strategy-bar{width:100%;padding:4px 16px;background:rgba(155,93,229,.08);border-top:1px solid rgba(155,93,229,.15);flex-shrink:0;display:none;align-items:center;justify-content:center;gap:8px}
+.strategy-bar{
+  width:100%;padding:4px 16px;
+  background:rgba(90,26,138,0.08);
+  border-top:1px solid rgba(90,26,138,0.15);
+  flex-shrink:0;display:none;
+  align-items:center;justify-content:center;gap:8px;
+}
 .strategy-bar.active{display:flex}
-.draw-btn{padding:8px 14px;background:rgba(155,93,229,.15);border:1px solid rgba(155,93,229,.3);border-radius:8px;color:#c084fc;font-family:'Cairo',sans-serif;font-size:12px;font-weight:600;cursor:pointer}
-.draw-btn.selected{background:rgba(155,93,229,.35);border-color:#9b5de5}
-.draw-label{font-size:10px;color:var(--muted)}
+.draw-btn{
+  padding:6px 12px;
+  background:rgba(90,26,138,0.15);
+  border:1px solid rgba(90,26,138,0.3);
+  border-radius:7px;color:#c084fc;
+  font-size:12px;font-weight:600;
+}
+.draw-btn.sel{background:rgba(90,26,138,0.4);border-color:var(--spc-bright)}
+.draw-label{font-size:9px;color:var(--text3)}
 
-/* My hand */
-.hand-wrap{width:100%;padding:4px 0 16px;overflow-x:auto;scrollbar-width:none;display:flex;justify-content:center;flex-shrink:0}
+/* ── MY HAND ── */
+.hand-wrap{
+  width:100%;padding:4px 0 14px;
+  overflow-x:auto;scrollbar-width:none;
+  display:flex;justify-content:center;flex-shrink:0;
+}
 .hand-wrap::-webkit-scrollbar{display:none}
-.hand{display:flex;gap:7px;padding:8px 16px;align-items:flex-end}
+.hand{
+  display:flex;gap:6px;
+  padding:8px 16px;align-items:flex-end;
+}
 
-/* ── CARDS ── */
-.card{width:var(--card-w);height:var(--card-h);border-radius:var(--r);position:relative;cursor:pointer;flex-shrink:0;overflow:hidden;transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s;border:1px solid var(--border)}
-.card:active{transform:translateY(-12px) scale(1.06)!important}
-.card.selected{transform:translateY(-18px) scale(1.08);z-index:5}
-.card.unplayable{opacity:.22;cursor:not-allowed;filter:grayscale(.8)}
-.card.atk{background:linear-gradient(155deg,#1a0505,#0e0202)}
-.card.atk::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(230,57,70,.28) 0%,transparent 65%)}
-.card.atk.selected{box-shadow:0 0 0 1.5px var(--atk),0 12px 32px rgba(230,57,70,.4)}
-.card.def{background:linear-gradient(155deg,#03091a,#02060f)}
-.card.def::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(58,123,213,.24) 0%,transparent 65%)}
-.card.def.selected{box-shadow:0 0 0 1.5px var(--def),0 12px 32px rgba(58,123,213,.4)}
-.card.spc{background:linear-gradient(155deg,#0d0516,#07020f)}
-.card.spc::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(155,93,229,.22) 0%,transparent 65%)}
-.card.spc.selected{box-shadow:0 0 0 1.5px var(--spc),0 12px 32px rgba(155,93,229,.4)}
-.card-body{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 6px}
-.card-type{font-size:8px;letter-spacing:1.5px;position:absolute;top:7px;right:0;left:0;text-align:center;font-weight:700;opacity:.6}
-.card-type.atk{color:var(--atk)}
-.card-type.def{color:var(--def)}
-.card-type.spc{color:var(--spc)}
-.card-icon{font-size:26px;line-height:1}
-.card-name{font-size:11px;font-weight:700;text-align:center;line-height:1.2;color:var(--text)}
-.card-name-en{font-size:8px;color:var(--muted);text-align:center;font-weight:400}
-.card-accent{position:absolute;top:0;right:0;width:28px;height:2px;border-radius:0 var(--r) 0 0}
-.card-accent.atk{background:var(--atk)}
-.card-accent.def{background:var(--def)}
-.card-accent.spc{background:var(--spc)}
+/* ══════════════════════════════════════════
+   CARD SYSTEM
+   Holographic tiers: standard / rare / elite / legend
+══════════════════════════════════════════ */
+.card{
+  width:var(--cw);height:var(--ch);
+  border-radius:var(--r-card);
+  position:relative;cursor:pointer;flex-shrink:0;
+  overflow:hidden;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s;
+  border:1px solid var(--border);
+  /* Physical linen card base */
+  background:var(--cream);
+  /* Drop shadow on glass pitch */
+  box-shadow:0 4px 12px rgba(0,0,0,0.5);
+}
+.card:active{transform:translateY(-14px) scale(1.07)!important}
+.card.selected{
+  transform:translateY(-20px) scale(1.09);
+  z-index:10;
+}
+.card.unplayable{
+  opacity:.2;cursor:not-allowed;
+  filter:grayscale(1) brightness(0.6);
+}
 
-/* ── OVERLAYS ── */
-.overlay{position:fixed;inset:0;background:rgba(10,10,15,.88);display:flex;align-items:flex-end;justify-content:center;z-index:100;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+/* Card type backgrounds */
+.card.atk{
+  background:linear-gradient(155deg, #f5e8d0 0%, #e8d5b8 60%, #dcc8a8 100%);
+}
+.card.def{
+  background:linear-gradient(155deg, #d8e4f0 0%, #c8d8e8 60%, #b8c8d8 100%);
+}
+.card.spc{
+  background:linear-gradient(155deg, #e8d5f5 0%, #d8c5e8 60%, #c8b5d8 100%);
+}
+
+/* Linen texture overlay */
+.card::before{
+  content:'';position:absolute;inset:0;
+  background-image:repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(255,255,255,0.15) 2px, rgba(255,255,255,0.15) 3px
+  );
+  opacity:.3;pointer-events:none;border-radius:inherit;
+}
+
+/* Card accent stripe at top */
+.card-accent{
+  position:absolute;top:0;left:0;right:0;height:3px;
+  border-radius:var(--r-card) var(--r-card) 0 0;
+}
+.card.atk .card-accent{background:linear-gradient(90deg,var(--atk),#e85060)}
+.card.def .card-accent{background:linear-gradient(90deg,var(--def),var(--def-bright))}
+.card.spc .card-accent{background:linear-gradient(90deg,var(--spc),var(--spc-bright))}
+
+/* Selected glow */
+.card.atk.selected{box-shadow:0 0 0 1.5px var(--atk),0 14px 28px rgba(200,48,58,0.45),0 4px 12px rgba(0,0,0,0.4)}
+.card.def.selected{box-shadow:0 0 0 1.5px var(--def-bright),0 14px 28px rgba(26,63,111,0.45),0 4px 12px rgba(0,0,0,0.4)}
+.card.spc.selected{box-shadow:0 0 0 1.5px var(--spc-bright),0 14px 28px rgba(90,26,138,0.45),0 4px 12px rgba(0,0,0,0.4)}
+
+/* ── HOLOGRAPHIC TIER: ELITE ── */
+/* Super Shot, VAR, Own Goal, Chain */
+.card.holo-elite::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(201,168,76,0.08) 35%,
+    rgba(255,255,255,0.12) 45%,
+    rgba(201,168,76,0.08) 55%,
+    transparent 70%
+  );
+  background-size:200% 200%;
+  animation:holoShimmer 3s ease-in-out infinite;
+  pointer-events:none;border-radius:inherit;
+}
+@keyframes holoShimmer{
+  0%{background-position:200% 0%}
+  50%{background-position:0% 100%}
+  100%{background-position:200% 0%}
+}
+
+/* ── HOLOGRAPHIC TIER: LEGEND ── */
+/* End Match */
+.card.holo-legend::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(
+    115deg,
+    transparent 10%,
+    rgba(201,168,76,0.15) 25%,
+    rgba(255,255,255,0.2) 40%,
+    rgba(232,201,106,0.18) 55%,
+    rgba(255,255,255,0.1) 70%,
+    transparent 85%
+  );
+  background-size:300% 300%;
+  animation:legendShimmer 2s ease-in-out infinite;
+  pointer-events:none;border-radius:inherit;
+}
+@keyframes legendShimmer{
+  0%{background-position:300% 0%}
+  50%{background-position:0% 150%}
+  100%{background-position:300% 0%}
+}
+.card.holo-legend{
+  border-color:rgba(201,168,76,0.35);
+  box-shadow:0 0 12px rgba(201,168,76,0.15),0 4px 12px rgba(0,0,0,0.5);
+}
+
+/* Card body */
+.card-body{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:3px;padding:8px 5px 6px;
+}
+.card-type-label{
+  font-size:7px;letter-spacing:1px;
+  position:absolute;top:8px;right:0;left:0;
+  text-align:center;font-weight:700;opacity:.55;
+}
+.card.atk .card-type-label{color:var(--atk)}
+.card.def .card-type-label{color:var(--def)}
+.card.spc .card-type-label{color:var(--spc)}
+.card-icon{font-size:24px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.2))}
+.card-name-ar{
+  font-size:10px;font-weight:700;
+  text-align:center;line-height:1.2;
+  color:#1a1208;
+}
+.card-name-en{font-size:7px;text-align:center;color:#6a5a48;font-weight:400}
+
+/* Played card in slot — full size rendering */
+.slot-card{
+  width:100%;height:100%;
+  border-radius:10px;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:3px;padding:6px;
+  position:relative;overflow:hidden;
+}
+.slot-card.atk{background:linear-gradient(155deg,#f5e8d0,#e8d5b8)}
+.slot-card.def{background:linear-gradient(155deg,#d8e4f0,#c8d8e8)}
+.slot-card.spc{background:linear-gradient(155deg,#e8d5f5,#d8c5e8)}
+.slot-card .card-accent{
+  position:absolute;top:0;left:0;right:0;height:3px;
+  border-radius:10px 10px 0 0;
+}
+.slot-icon{font-size:20px}
+.slot-name{font-size:9px;font-weight:700;color:#1a1208;text-align:center}
+
+/* ══════════════════════════════════════════
+   OVERLAYS
+══════════════════════════════════════════ */
+.overlay{
+  position:fixed;inset:0;
+  background:rgba(8,5,9,0.88);
+  display:flex;align-items:flex-end;justify-content:center;
+  z-index:100;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
 .overlay.center{align-items:center}
-.overlay-panel{width:100%;max-width:420px;background:var(--surface);border-radius:24px 24px 0 0;padding:28px 24px 48px;border-top:1px solid var(--border2)}
-.overlay-panel.center{border-radius:24px;margin:24px}
-.ov-title{font-size:20px;font-weight:900;text-align:center;margin-bottom:6px}
-.ov-sub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:20px}
-.ov-actions{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+.ov-panel{
+  width:100%;max-width:420px;
+  background:var(--void2);
+  border-radius:22px 22px 0 0;
+  padding:26px 22px 44px;
+  border-top:1px solid var(--border2);
+  position:relative;overflow:hidden;
+}
+.ov-panel::before{
+  content:'';position:absolute;top:0;left:20%;right:20%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+}
+.ov-panel.center{border-radius:20px;margin:24px}
+.ov-title{font-size:20px;font-weight:900;text-align:center;margin-bottom:4px;color:var(--text)}
+.ov-sub{font-size:11px;color:var(--text3);text-align:center;margin-bottom:18px;letter-spacing:.5px}
+.ov-actions{display:flex;flex-direction:column;gap:8px;margin-top:18px}
 
 /* VAR overlay */
-.var-coin{width:80px;height:80px;border-radius:50%;background:var(--raise);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 20px;cursor:pointer;transition:transform .2s}
-.var-coin:active{transform:scale(.94)}
-.var-choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.var-choice{padding:16px;background:var(--raise);border:1.5px solid var(--border2);border-radius:var(--r);text-align:center;cursor:pointer;transition:all .18s}
-.var-choice:hover,.var-choice:active{border-color:var(--gold);background:rgba(255,209,102,.08)}
-.var-choice-icon{font-size:28px;display:block;margin-bottom:6px}
-.var-choice-label{font-size:13px;font-weight:700}
+.var-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.var-choice{
+  padding:18px 12px;
+  background:var(--glass);
+  border:1px solid var(--border2);
+  border-radius:var(--r-panel);
+  text-align:center;cursor:pointer;
+  transition:all .18s;
+}
+.var-choice:active{
+  border-color:var(--gold);
+  background:var(--gold-dim);
+}
+.var-choice-icon{font-size:32px;display:block;margin-bottom:6px}
+.var-choice-label{font-size:14px;font-weight:900;color:var(--text)}
+.var-choice-sub{font-size:9px;color:var(--text3);margin-top:3px}
 
 /* Penalty overlay */
-.pen-icon{font-size:64px;text-align:center;margin-bottom:12px}
+.pen-icon{font-size:56px;text-align:center;margin-bottom:10px}
 .pen-options{display:flex;flex-direction:column;gap:8px}
 
-/* Game over overlay */
-.go-result{font-size:72px;text-align:center;margin-bottom:8px}
-.go-title{font-size:22px;font-weight:900;text-align:center}
-.go-score{font-size:14px;color:var(--muted);text-align:center;margin-top:4px}
-.go-clown{font-size:12px;color:var(--muted);text-align:center;margin-top:12px;padding:10px;background:var(--raise);border-radius:10px}
+/* Reshuffle */
+.reshuffle-hand{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin:14px 0}
+.reshuffle-card{
+  padding:8px 12px;
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:8px;font-size:11px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;gap:5px;
+  color:var(--text2);transition:all .15s;
+}
+.reshuffle-card.chosen{
+  border-color:var(--spc-bright);
+  background:var(--spc-dim);color:#c084fc;
+}
+.reshuffle-count{font-size:10px;color:var(--text3);text-align:center}
+
+/* ── GOAL FLASH ── */
+.goal-flash{
+  position:fixed;inset:0;z-index:200;
+  pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;
+}
+.goal-flash.show{animation:goalAnim 1.4s ease-out forwards}
+@keyframes goalAnim{
+  0%{opacity:0;transform:scale(0.7)}
+  15%{opacity:1;transform:scale(1.05)}
+  30%{opacity:1;transform:scale(1)}
+  75%{opacity:1;transform:scale(1)}
+  100%{opacity:0;transform:scale(1.1)}
+}
+.goal-flash-bg{
+  position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 50%, rgba(201,168,76,0.3) 0%, transparent 70%);
+}
+.goal-flash-text{
+  position:relative;z-index:2;text-align:center;
+}
+.gf-word{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:80px;letter-spacing:4px;
+  color:var(--gold);
+  text-shadow:0 0 40px rgba(201,168,76,0.6), 0 0 80px rgba(201,168,76,0.3);
+  display:block;line-height:1;
+}
+.gf-sub{
+  font-size:12px;color:var(--text2);letter-spacing:4px;
+  display:block;margin-top:4px;
+}
+
+/* ── VAR RESULT FLASH ── */
+.var-flash{
+  position:fixed;inset:0;z-index:200;
+  pointer-events:none;opacity:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.var-flash.show{animation:goalAnim 1.6s ease-out forwards}
+.var-flash-bg{
+  position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 50%, rgba(20,40,80,0.4) 0%, transparent 70%);
+}
+.var-flash-text{position:relative;z-index:2;text-align:center}
+.vf-word{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:56px;letter-spacing:6px;
+  color:#4a8fff;
+  text-shadow:0 0 30px rgba(74,143,255,0.5);
+  display:block;
+}
+.vf-sub{font-size:11px;color:var(--text2);letter-spacing:3px;display:block;margin-top:4px}
+
+/* ── OWN GOAL FLASH ── */
+.og-flash{
+  position:fixed;inset:0;z-index:200;
+  pointer-events:none;opacity:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.og-flash.show{animation:goalAnim 2s ease-out forwards}
+.og-flash-bg{
+  position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 50%, rgba(200,48,58,0.2) 0%, transparent 70%);
+}
+.og-flash-text{position:relative;z-index:2;text-align:center}
+.of-word{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:50px;letter-spacing:2px;
+  color:var(--atk);
+  text-shadow:0 0 30px rgba(200,48,58,0.5);
+  display:block;
+}
+.of-sub{font-size:11px;color:var(--text2);letter-spacing:2px;display:block;margin-top:4px}
+
+/* Game Over */
+.go-result{font-size:64px;text-align:center;margin-bottom:8px}
+.go-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:28px;letter-spacing:2px;
+  text-align:center;color:var(--gold);
+}
+.go-score{font-size:13px;color:var(--text3);text-align:center;margin-top:4px}
+.go-line{
+  width:60px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  margin:14px auto;
+}
+.go-clown{font-size:11px;color:var(--text3);text-align:center;padding:8px 12px;background:var(--glass);border-radius:8px}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--raise);border:1px solid var(--border2);border-radius:12px;padding:10px 20px;font-size:13px;color:var(--text);opacity:0;transition:all .25s;z-index:200;white-space:nowrap;max-width:90vw;text-align:center;pointer-events:none}
+#toast{
+  position:fixed;bottom:90px;left:50%;
+  transform:translateX(-50%) translateY(16px);
+  background:var(--void2);
+  border:1px solid var(--border2);
+  border-radius:10px;
+  padding:9px 18px;font-size:12px;color:var(--text);
+  opacity:0;transition:all .22s;z-index:300;
+  white-space:nowrap;max-width:88vw;
+  text-align:center;pointer-events:none;
+  box-shadow:0 4px 20px rgba(0,0,0,0.5);
+}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* ── RESHUFFLE OVERLAY ── */
-.reshuffle-hand{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0}
-.reshuffle-card{padding:10px 14px;background:var(--raise);border:1.5px solid var(--border);border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
-.reshuffle-card.chosen{border-color:var(--spc);background:rgba(155,93,229,.12);color:#c084fc}
-.reshuffle-count{font-size:11px;color:var(--muted);text-align:center}
+/* ── CHAIN interrupt badge ── */
+.chain-badge{
+  position:absolute;top:-6px;right:-6px;
+  width:16px;height:16px;border-radius:50%;
+  background:var(--atk);
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;color:white;font-weight:900;
+  border:1px solid rgba(255,255,255,0.2);
+  z-index:6;
+}
 
-/* ── UTIL ── */
-.text-center{text-align:center}
-.mt-8{margin-top:8px}
-.mt-16{margin-top:16px}
+/* ── LEGEND MOMENT — approaching win ── */
+.scorebar.legend-moment{
+  border-bottom-color:rgba(201,168,76,0.3);
+}
+.scorebar.legend-moment .sb-score.mine{
+  animation:legendPulse 2s ease-in-out infinite;
+}
+@keyframes legendPulse{
+  0%,100%{text-shadow:0 0 20px rgba(201,168,76,0.2)}
+  50%{text-shadow:0 0 30px rgba(201,168,76,0.5),0 0 60px rgba(201,168,76,0.2)}
+}
+
+/* Reduced motion */
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+/* Mobile adjustments */
+@media(max-width:380px){
+  :root{--cw:64px;--ch:94px}
+  .card-icon{font-size:20px}
+  .card-name-ar{font-size:9px}
+  .gf-word{font-size:60px}
+}
 </style>
 </head>
 <body>
 
+<!-- FLOODLIGHT RAYS (game only) -->
+<div class="game-rays hidden" id="game-rays"></div>
+
 <!-- LOADING -->
 <div id="s-loading" class="screen">
-  <div>
-    <div class="load-logo">Own Goal</div>
-    <div class="load-sub">كورة كاردز</div>
+  <div class="load-rays"></div>
+  <div class="load-wrap">
+    <div class="load-glow"></div>
+    <div class="load-logo-wrap">
+      <div class="load-logo-ar">دبلة</div>
+      <div class="load-logo-en">DOBLA</div>
+      <div class="load-line"></div>
+      <div class="load-sub">كورة الشارع — كارت لكارت</div>
+    </div>
     <div class="load-dots">
       <div class="load-dot"></div>
       <div class="load-dot"></div>
@@ -248,39 +966,45 @@ body{font-family:'Cairo',sans-serif;color:var(--text);overscroll-behavior:none}
 
 <!-- LOBBY -->
 <div id="s-lobby" class="screen hidden">
-  <div class="lobby-header">
-    <div class="game-logo">Own<span>Goal</span></div>
-    <div class="game-tagline">كورة الشارع — كارت لكارت</div>
-    <div class="pitch-line"></div>
-  </div>
-
-  <div class="lobby-body">
-    <div class="field-group">
-      <div class="field-label">اسمك</div>
-      <input id="inp-name" class="field-input" type="text" placeholder="ادخل اسمك" maxlength="16" autocomplete="off">
+  <div class="lobby-rays"></div>
+  <div class="lobby-inner">
+    <div class="lobby-header">
+      <div class="logo-ar">دبلة</div>
+      <div class="logo-en">DOBLA</div>
+      <div class="logo-rule"></div>
+      <div class="logo-tag">كورة الشارع — كارت لكارت</div>
     </div>
 
-    <div class="field-group">
-      <div class="field-label">وضع اللعب</div>
-      <div class="mode-row">
-        <button class="mode-btn selected" id="mode-luck" onclick="selectMode('luck')">
-          <span class="mode-btn-icon">🎲</span>
-          مود الحظ
-        </button>
-        <button class="mode-btn" id="mode-strategy" onclick="selectMode('strategy')">
-          <span class="mode-btn-icon">🧠</span>
-          مود الاستراتيجية
-        </button>
+    <div class="field-stack">
+      <div class="field-group">
+        <div class="field-label">اسمك</div>
+        <input id="inp-name" class="field-input" type="text" placeholder="ادخل اسمك" maxlength="16" autocomplete="off">
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">وضع اللعب</div>
+        <div class="mode-row">
+          <button class="mode-btn sel" id="mode-luck" onclick="selectMode('luck')">
+            <span class="mode-icon">🎲</span>
+            مود الحظ
+            <div class="mode-desc">سريع — القرار هو التوقيت</div>
+          </button>
+          <button class="mode-btn" id="mode-strategy" onclick="selectMode('strategy')">
+            <span class="mode-icon">🧠</span>
+            مود الاستراتيجية
+            <div class="mode-desc">تكتيك — كومبو كامل</div>
+          </button>
+        </div>
       </div>
     </div>
 
-    <div class="action-stack">
-      <button class="btn-primary" onclick="doCreate()">➕ إنشاء غرفة</button>
+    <div class="btn-stack">
+      <button class="btn-primary" onclick="doCreate()">إنشاء غرفة</button>
       <div class="divider">أو</div>
-      <button class="btn-secondary" onclick="toggleJoin()">🚪 انضم لغرفة</button>
+      <button class="btn-secondary" onclick="toggleJoin()">انضم لغرفة موجودة</button>
     </div>
 
-    <div class="join-panel hidden" id="join-panel">
+    <div class="join-panel hidden" id="join-panel" style="margin-top:12px">
       <input id="inp-code" class="code-input" type="text" placeholder="ABCD" maxlength="4" autocomplete="off" oninput="this.value=this.value.toUpperCase()">
       <button class="btn-primary" onclick="doJoin()">انضم</button>
     </div>
@@ -289,26 +1013,22 @@ body{font-family:'Cairo',sans-serif;color:var(--text);overscroll-behavior:none}
 
 <!-- WAITING ROOM -->
 <div id="s-room" class="screen hidden">
-  <div class="text-center">
-    <div class="field-label" style="margin-bottom:4px">شارك الكود مع صاحبك</div>
-  </div>
-
   <div class="room-code-panel">
     <div class="rcp-label">كود الغرفة</div>
     <div class="rcp-code" id="room-code-display">----</div>
-    <div class="rcp-hint">اكتب الكود ده عند صاحبك</div>
-    <button class="copy-btn" onclick="copyCode()">📋 نسخ الكود</button>
+    <div class="rcp-hint">شارك الكود مع صاحبك</div>
+    <button class="copy-btn" onclick="copyCode()">📋 نسخ</button>
   </div>
 
   <div class="vs-panel">
-    <div class="player-card active" id="pc-p1">
-      <div class="pc-dot on" id="dot-p1"></div>
-      <div class="pc-name" id="pname-p1">---</div>
+    <div class="player-slot active" id="pc-p1">
+      <div class="ps-dot on" id="dot-p1"></div>
+      <div class="ps-name" id="pname-p1">---</div>
     </div>
     <div class="vs-sep">VS</div>
-    <div class="player-card" id="pc-p2">
-      <div class="pc-dot" id="dot-p2"></div>
-      <div class="pc-name waiting" id="pname-p2">في انتظار المنافس...</div>
+    <div class="player-slot" id="pc-p2">
+      <div class="ps-dot" id="dot-p2"></div>
+      <div class="ps-name wait" id="pname-p2">في انتظار المنافس...</div>
     </div>
   </div>
 
@@ -322,9 +1042,8 @@ body{font-family:'Cairo',sans-serif;color:var(--text);overscroll-behavior:none}
 
 <!-- GAME SCREEN -->
 <div id="s-game" class="screen hidden">
-
   <!-- Score bar -->
-  <div class="scorebar">
+  <div class="scorebar" id="scorebar">
     <div class="sb-inner">
       <div class="sb-side mine">
         <div class="sb-name mine" id="sb-myname">أنت</div>
@@ -345,13 +1064,13 @@ body{font-family:'Cairo',sans-serif;color:var(--text);overscroll-behavior:none}
 
   <!-- Possession bar -->
   <div class="poss-bar">
-    <span id="poss-label">الكرة لوز 🎲</span> <span class="poss-name" id="poss-name"></span>
+    <span id="poss-label">الكرة لوز ⚽</span> <span class="poss-name" id="poss-name"></span>
   </div>
 
-  <!-- Opponent hand (face down) -->
+  <!-- Opponent hand -->
   <div class="opp-zone" id="opp-zone"></div>
 
-  <!-- Strategy draw bar (hidden in luck mode) -->
+  <!-- Strategy draw bar -->
   <div class="strategy-bar" id="strategy-bar">
     <span class="draw-label">سحب:</span>
     <button class="draw-btn" id="draw-1" onclick="strategyPickDraw(1)">١</button>
@@ -360,8 +1079,9 @@ body{font-family:'Cairo',sans-serif;color:var(--text);overscroll-behavior:none}
     <span class="draw-label" id="draw-hint">اختار كم تسحب</span>
   </div>
 
-  <!-- Play zone -->
+  <!-- Play zone with liquid glass pitch -->
   <div class="play-zone">
+    <div class="pitch-surface"></div>
     <div class="clash-row">
       <div class="play-slot" id="sl-opp"><span>منافسك</span></div>
       <div class="clash-vs">⚡</div>
@@ -383,52 +1103,69 @@ body{font-family:'Cairo',sans-serif;color:var(--text);overscroll-behavior:none}
   </div>
 </div>
 
+<!-- GOAL FLASH -->
+<div class="goal-flash" id="goal-flash">
+  <div class="goal-flash-bg"></div>
+  <div class="goal-flash-text">
+    <span class="gf-word" id="gf-word">GOAL</span>
+    <span class="gf-sub" id="gf-sub">سجّل!</span>
+  </div>
+</div>
+
+<!-- VAR FLASH -->
+<div class="var-flash hidden" id="var-flash">
+  <div class="var-flash-bg"></div>
+  <div class="var-flash-text">
+    <span class="vf-word" id="vf-word">VAR</span>
+    <span class="vf-sub" id="vf-sub"></span>
+  </div>
+</div>
+
+<!-- OWN GOAL FLASH -->
+<div class="og-flash hidden" id="og-flash">
+  <div class="og-flash-bg"></div>
+  <div class="og-flash-text">
+    <span class="of-word">أون جول!</span>
+    <span class="of-sub" id="og-sub">الهدف لصالح المدافع 😱</span>
+  </div>
+</div>
+
 <!-- VAR OVERLAY -->
 <div class="overlay center hidden" id="ov-var">
-  <div class="overlay-panel center">
-    <div class="ov-title">📹 VAR</div>
-    <div class="ov-sub">إنت اللي بتلعب VAR — اختار وش أو ضهر</div>
+  <div class="ov-panel center">
+    <div style="font-size:32px;text-align:center;margin-bottom:8px">📹</div>
+    <div class="ov-title">VAR</div>
+    <div class="ov-sub">إنت اللي لعبت — اختار وش أو ضهر</div>
     <div class="var-choices">
       <div class="var-choice" onclick="submitVAR('heads')">
         <span class="var-choice-icon">🟡</span>
         <div class="var-choice-label">وش</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px">يأكد الحدث</div>
+        <div class="var-choice-sub">يأكد الحدث</div>
       </div>
       <div class="var-choice" onclick="submitVAR('tails')">
         <span class="var-choice-icon">⚪</span>
         <div class="var-choice-label">ضهر</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px">يعكس الحدث</div>
+        <div class="var-choice-sub">يعكس الحدث</div>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- VAR RESULT OVERLAY -->
-<div class="overlay center hidden" id="ov-var-result">
-  <div class="overlay-panel center">
-    <div class="ov-title" id="var-result-title">📹 نتيجة VAR</div>
-    <div class="ov-sub" id="var-result-sub"></div>
-    <div class="ov-actions">
-      <button class="btn-primary" onclick="closeOverlay('ov-var-result')">تمام</button>
     </div>
   </div>
 </div>
 
 <!-- PENALTY OVERLAY -->
 <div class="overlay center hidden" id="ov-penalty">
-  <div class="overlay-panel center">
+  <div class="ov-panel center">
     <div class="pen-icon">🥅</div>
-    <div class="ov-title">بنلتي!</div>
-    <div class="ov-sub" id="pen-sub">هدف مضمون — بس أون جول يوقفه</div>
+    <div class="ov-title">بنلتي</div>
+    <div class="ov-sub" id="pen-sub">هدف مضمون — VAR الوحيد يوقفه</div>
     <div class="pen-options" id="pen-options"></div>
   </div>
 </div>
 
 <!-- RESHUFFLE OVERLAY -->
 <div class="overlay hidden" id="ov-reshuffle">
-  <div class="overlay-panel">
+  <div class="ov-panel">
     <div class="ov-title">🔄 ريشافل</div>
-    <div class="ov-sub">اختار كروت تبدلها من الديك</div>
+    <div class="ov-sub">اختار 2 كروت تبدلهم من الديك</div>
     <div class="reshuffle-hand" id="reshuffle-cards"></div>
     <div class="reshuffle-count" id="reshuffle-count">اختار 2 كروت</div>
     <div class="ov-actions">
@@ -438,15 +1175,16 @@ body{font-family:'Cairo',sans-serif;color:var(--text);overscroll-behavior:none}
   </div>
 </div>
 
-<!-- GAME OVER OVERLAY -->
+<!-- GAME OVER -->
 <div class="overlay center hidden" id="ov-gameover">
-  <div class="overlay-panel center">
+  <div class="ov-panel center">
     <div class="go-result" id="go-icon">🏆</div>
     <div class="go-title" id="go-title">فزت!</div>
     <div class="go-score" id="go-score"></div>
+    <div class="go-line"></div>
     <div class="go-clown hidden" id="go-clown"></div>
     <div class="ov-actions">
-      <button class="btn-primary" onclick="doRestart()">🔄 ماتش تاني</button>
+      <button class="btn-primary" onclick="doRestart()">ماتش تاني</button>
       <button class="btn-secondary" onclick="doLeave()">↩ خروج</button>
     </div>
   </div>
@@ -455,9 +1193,8 @@ body{font-family:'Cairo',sans-serif;color:var(--text);overscroll-behavior:none}
 <!-- TOAST -->
 <div id="toast"></div>
 
-<!-- ══════════════════════════════════════════════════════
-     ENGINE
-══════════════════════════════════════════════════════ -->
+
+
 <script>
 // ═══════════════════════════════════════════════════════════════
 // OWN GOAL — Game Engine v2.0
@@ -1343,7 +2080,6 @@ const OwnGoalEngine = {
 
 if (typeof module !== 'undefined' && module.exports) module.exports = OwnGoalEngine;
 if (typeof window !== 'undefined') window.OwnGoalEngine = OwnGoalEngine;
-
 </script>
 
 <script type="module">
@@ -1374,9 +2110,6 @@ window._fbReady = true;
 document.dispatchEvent(new Event('fb-ready'));
 </script>
 
-<!-- ══════════════════════════════════════════════════════
-     GAME LAYER
-══════════════════════════════════════════════════════ -->
 <script>
 // ── STATE ──
 let myId      = null;   // 'p1' | 'p2'
@@ -1579,6 +2312,7 @@ function syncUI(prev){
   // ── WAITING ROOM ──
   if(phase==='waiting'){
     showScreen('room');
+    document.getElementById('game-rays').classList.add('hidden');
     if(p2?.name){
       document.getElementById('pname-p2').textContent=p2.name;
       document.getElementById('pname-p2').classList.remove('waiting');
@@ -1604,6 +2338,7 @@ function syncUI(prev){
 
   // ── ACTIVE GAME ──
   showScreen('game');
+  document.getElementById('game-rays').classList.remove('hidden');
   renderGameUI();
 
   // Handle new events
@@ -1705,13 +2440,11 @@ function renderSlot(id,atkCard,defCard){
   }
   el.className='play-slot filled';
   const tc=typeClass(card.type);
-  el.innerHTML=`<div class="card ${tc}" style="width:100%;height:100%;border-radius:12px">
-    <div class="card-accent ${tc}"></div>
-    <div class="card-body">
-      <div class="card-type ${tc}">${typeLabel(card.type)}</div>
-      <div class="card-icon">${cardIcon(card.id)}</div>
-      <div class="card-name">${card.ar}</div>
-    </div>
+  const ht=holoTier(card.id);
+  el.innerHTML=`<div class="slot-card ${tc} ${ht}">
+    <div class="card-accent"></div>
+    <div class="slot-icon">${cardIcon(card.id)}</div>
+    <div class="slot-name">${card.ar}</div>
   </div>`;
 }
 
@@ -1724,15 +2457,16 @@ function renderHand(hand){
     const ok=p?.playable;
     const sel=selectedCardIdx===i;
     const tc=typeClass(card.type);
+    const ht=holoTier(card.id);
     const div=document.createElement('div');
-    div.className=`card ${tc}${!ok?' unplayable':''}${sel?' selected':''}`;
-    div.innerHTML=`<div class="card-accent ${tc}"></div>
+    div.className=['card',tc,ht,!ok?'unplayable':'',sel?'selected':''].filter(Boolean).join(' ');
+    div.innerHTML=`<div class="card-accent"></div>
       <div class="card-body">
-        <div class="card-type ${tc}">${typeLabel(card.type)}</div>
+        <div class="card-type-label">${typeLabel(card.type)}</div>
         <div class="card-icon">${cardIcon(card.id)}</div>
-        <div class="card-name">${card.ar}</div>
+        <div class="card-name-ar">${card.ar}</div>
         <div class="card-name-en">${card.en}</div>
-      </div>`;
+      </div>${p?.interrupt?'<div class="chain-badge">⛓</div>':''}`;
     div.addEventListener('click',()=>{
       if(ok)selectCard(i);
       else if(p?.reason)toast(p.reason);
@@ -2279,27 +3013,79 @@ function handleEvents(prev){
   const ev=gs.lastEvent;
   if(!ev||!prev||ev.ts===prev?.lastEvent?.ts)return;
   const msgEl=document.getElementById('event-msg');
+
+  // Cinematic flashes for major events
+  if(ev.type==='goal'||ev.type==='penalty_scored'){
+    const isMine=ev.player===myId||ev.scoringPlayer===myId;
+    showGoalFlash(isMine);
+    // Legend moment: approaching win
+    const myGoals=me()?.goals||0;
+    if(myGoals>=gameState.winGoals-1) triggerLegendMoment();
+  }
+  if(ev.type==='own_goal_scored') showOGFlash();
+  if(ev.type==='var_resolved') showVARFlash(ev);
+
   const msgs={
-    goal:'⚽ هدف!',
-    attack_passed_through:`✅ ${ev.card||'الهجوم'} عدّى — استمر!`,
-    attack_succeeded:'✅ الهجوم نجح',
-    defense_stole:'✂️ قاطع وأخد الكرة!',
-    defense_neutral:'🛡️ صد! الكرة لوز',
-    foul_committed:'🦵 فاول! الاستحواذ للمهاجم',
-    penalty_awarded:'🥅 بنلتي!',
-    penalty_scored:'⚽ بنلتي — هدف!',
-    penalty_saved:'✋ البنلتي اتلغت',
-    var_on_penalty:'📹 VAR على البنلتي!',
-    var_resolved:ev.goalStands?'📹 VAR: الهدف اتأكد':'📹 VAR: الهدف اتلغى',
-    own_goal_scored:'😱 أون جول! الهدف لصالح المدافع!',
-    chain:'⛓️ استخلاص! الاستحواذ اتسرق',
-    turnover:'↩️ Turnover — مفيش كروت هجوم',
-    reshuffle:'🔄 ريشافل تم',
-    card_burned:'🔥 كارت اتحرق',
-    end_match:'🏁 نهاية الماتش',
+    goal:'',
+    attack_passed_through:`${ev.card||'الهجوم'} عدّى — استمر`,
+    attack_succeeded:'الهجوم نجح',
+    defense_stole:'قاطع وأخد الكرة',
+    defense_neutral:'صد — الكرة لوز',
+    foul_committed:'فاول — الاستحواذ للمهاجم',
+    penalty_awarded:'بنلتي!',
+    penalty_scored:'',
+    penalty_saved:'البنلتي اتلغت',
+    var_on_penalty:'VAR على البنلتي',
+    var_resolved:ev.goalStands?'VAR: الهدف اتأكد':'VAR: الهدف اتلغى',
+    own_goal_scored:'',
+    chain:'استخلاص — الاستحواذ اتسرق',
+    turnover:'Turnover تلقائي',
+    reshuffle:'ريشافل تم',
+    card_burned:'كارت اتحرق',
+    end_match:'نهاية الماتش',
   };
-  const txt=msgs[ev.type]||ev.detail||'';
+  const txt=msgs[ev.type]!==undefined?msgs[ev.type]:(ev.detail||'');
   if(txt){msgEl.textContent=txt;setTimeout(()=>{if(msgEl.textContent===txt)msgEl.textContent='';},3000);}
+}
+
+function showGoalFlash(isMine){
+  const el=document.getElementById('goal-flash');
+  document.getElementById('gf-word').textContent=isMine?'GOAL!':'هدف عليك';
+  document.getElementById('gf-sub').textContent=isMine?'سجّلت ⚽':'خصمك سجّل';
+  el.className='goal-flash';
+  void el.offsetWidth;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),1500);
+  // Intensify god rays
+  const rays=document.getElementById('game-rays');
+  if(rays){rays.classList.add('intense');setTimeout(()=>rays.classList.remove('intense'),2000);}
+  // Pop score
+  const scoreEl=document.getElementById(isMine?'sb-myscore':'sb-oppscore');
+  scoreEl.classList.add('popped');
+  setTimeout(()=>scoreEl.classList.remove('popped'),400);
+}
+
+function showOGFlash(){
+  const el=document.getElementById('og-flash');
+  el.className='og-flash';void el.offsetWidth;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+function showVARFlash(ev){
+  const el=document.getElementById('var-flash');
+  document.getElementById('vf-word').textContent='VAR';
+  document.getElementById('vf-sub').textContent=ev.goalStands?'الهدف اتأكد ✅':'الهدف اتلغى ❌';
+  el.className='var-flash';void el.offsetWidth;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),1800);
+}
+
+function triggerLegendMoment(){
+  const sb=document.getElementById('scorebar');
+  sb.classList.add('legend-moment');
+  const rays=document.getElementById('game-rays');
+  if(rays)rays.classList.add('intense');
 }
 
 // ── OVERLAYS ──
@@ -2307,11 +3093,30 @@ function showOverlay(id){document.getElementById(id).classList.remove('hidden');
 function closeOverlay(id){document.getElementById(id).classList.add('hidden');}
 window.closeOverlay=closeOverlay;
 
+
 // ── CARD HELPERS ──
 function typeClass(t){return t==='attack'?'atk':t==='defense'?'def':'spc';}
 function typeLabel(t){return{attack:'هجوم',defense:'دفاع',special:'خاص',earned:'مكسوب'}[t]||t;}
-const CARD_ICONS={pass:'🔀',dribble:'🌀',shot:'⚽',supershot:'⚡',assist:'🎯',goal:'🥅',chain:'⛓️',endmatch:'🏁',intercept:'✂️',tackle:'⛓️',goalkeeper:'🧤',blocksave:'🚫',blockshot:'🙅',block:'🛑',foul:'🦵',offside:'🚩',owngoal:'😂',var:'📹',reshuffle:'🔄',penalty:'🎯'};
+
+// Holographic tier assignment
+function holoTier(id){
+  const legend=['endmatch'];
+  const elite=['supershot','owngoal','var','chain','offside'];
+  if(legend.includes(id))return'holo-legend';
+  if(elite.includes(id))return'holo-elite';
+  return'';
+}
+
+const CARD_ICONS={
+  pass:'🔀',dribble:'🌀',shot:'⚽',supershot:'⚡',
+  assist:'🎯',goal:'🥅',chain:'⛓️',endmatch:'🏁',
+  intercept:'✂️',tackle:'🦵',goalkeeper:'🧤',
+  blocksave:'🚫',blockshot:'🙅',block:'🛑',
+  foul:'🟨',offside:'🚩',owngoal:'😱',
+  var:'📹',reshuffle:'🔄',penalty:'🎯'
+};
 function cardIcon(id){return CARD_ICONS[id]||'🃏';}
+
 
 // ── BOOT ──
 window.addEventListener('DOMContentLoaded',()=>{
