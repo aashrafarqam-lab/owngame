@@ -107,18 +107,28 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
 }
 .lobby-logo{
   font-family:'Cairo';font-size:min(22vw,120px);font-weight:900;
-  color:var(--g1);letter-spacing:-6px;line-height:.85;
-  text-shadow:0 0 120px rgba(201,168,76,.45),0 0 40px rgba(201,168,76,.2);
+  color:var(--lobby-accent,var(--g1));letter-spacing:-6px;line-height:.85;
+  text-shadow:0 0 120px var(--lobby-glow1,rgba(201,168,76,.45)),0 0 40px var(--lobby-glow2,rgba(201,168,76,.2));
+  transition:color .6s ease, text-shadow .6s ease;
 }
 .lobby-wordmark{
   font-family:'Bebas Neue';font-size:11px;letter-spacing:10px;
-  color:var(--t4);margin-top:6px;
+  color:var(--lobby-accent-dim,var(--t4));margin-top:6px;
+  transition:color .6s ease;
 }
 .lobby-rule{
   width:40px;height:1px;
-  background:linear-gradient(90deg,transparent,var(--g1),transparent);
+  background:linear-gradient(90deg,transparent,var(--lobby-accent,var(--g1)),transparent);
   margin:12px auto;
+  transition:background .6s ease;
 }
+/* Per-mode lobby theming */
+.lobby-sheet::before{
+  content:'';position:absolute;top:-1px;left:20%;right:20%;height:1px;border-radius:1px;
+  background:linear-gradient(90deg,transparent,var(--lobby-accent,rgba(201,168,76,.6)),transparent);
+  transition:background .6s ease;
+}
+.lobby-sheet{transition:background .6s ease;}
 .lobby-tag{font-size:10px;color:var(--t3);letter-spacing:2px}
 
 /* Bottom sheet — enters from below */
@@ -1130,7 +1140,7 @@ const LobbyScene = (function(){
   // ── A: الشارع ──
   function drawStreet(ctx, W, H, t){
     ctx.clearRect(0,0,W,H);
-    const vx=W/2, vy=H*0.5;
+    const vx=W/2, vy=H*0.52;
 
     // Night sky
     const sky=ctx.createLinearGradient(0,0,0,H*0.55);
@@ -1233,6 +1243,21 @@ const LobbyScene = (function(){
   // ── B: الكورة extras (on top of base WorldCanvas) ──
   function drawStadiumExtras(ctx, W, H, t){
     const pitchTop=H*0.52;
+
+    // Tight bright CORE inside each floodlight beam — matches mockup
+    const LIGHTS=[0.12,0.30,0.50,0.70,0.88];
+    LIGHTS.forEach((xr,i)=>{
+      const lx=W*xr;
+      const b=0.65+0.35*Math.sin(t*0.4+i*0.9);
+      const core=ctx.createLinearGradient(lx,0,lx,pitchTop*0.7);
+      core.addColorStop(0,'rgba(180,240,255,0)');
+      core.addColorStop(0.35,`rgba(180,240,255,${0.14*b})`);
+      core.addColorStop(0.7,`rgba(180,240,255,${0.06*b})`);
+      core.addColorStop(1,'rgba(180,240,255,0)');
+      ctx.beginPath();ctx.moveTo(lx-4,0);ctx.lineTo(lx-W*0.018,pitchTop*0.7);
+      ctx.lineTo(lx+W*0.018,pitchTop*0.7);ctx.lineTo(lx+4,0);ctx.closePath();
+      ctx.fillStyle=core;ctx.fill();
+    });
 
     // Laser scan line
     const scanY=((t*85)%(H*0.72));
@@ -3897,14 +3922,56 @@ function selectTunnelMode(mode){
     if(btn) btn.classList.toggle('sel', m === mode);
   });
   TunnelSystem.setMode(mode);
+  // Update lobby visual theme
+  applyLobbyTheme(mode);
+}
+
+function applyLobbyTheme(mode){
+  const root = document.documentElement;
+  const sheet = document.querySelector('.lobby-sheet');
+  if(mode === 'a'){
+    // الشارع — yellow/orange street
+    root.style.setProperty('--lobby-accent','#FFD600');
+    root.style.setProperty('--lobby-accent-dim','rgba(255,214,0,.3)');
+    root.style.setProperty('--lobby-glow1','rgba(255,214,0,.5)');
+    root.style.setProperty('--lobby-glow2','rgba(255,107,0,.25)');
+    if(sheet){sheet.style.background='rgba(3,5,8,.92)';}
+    // Street-themed selected mode chip
+    document.querySelectorAll('.tmode-btn').forEach(b=>b.style.cssText='');
+    const btnA=document.getElementById('lobby-tmode-a');
+    if(btnA)btnA.style.cssText='border-color:rgba(255,107,0,.55);background:rgba(255,107,0,.1);color:#FF6B00';
+  } else if(mode === 'b'){
+    // الكورة — cyan stadium
+    root.style.setProperty('--lobby-accent','#00C8FF');
+    root.style.setProperty('--lobby-accent-dim','rgba(0,200,255,.3)');
+    root.style.setProperty('--lobby-glow1','rgba(0,200,255,.6)');
+    root.style.setProperty('--lobby-glow2','rgba(0,200,255,.25)');
+    if(sheet){sheet.style.background='rgba(2,4,10,.93)';}
+    document.querySelectorAll('.tmode-btn').forEach(b=>b.style.cssText='');
+    const btnB=document.getElementById('lobby-tmode-b');
+    if(btnB)btnB.style.cssText='border-color:rgba(0,200,255,.55);background:rgba(0,200,255,.08);color:#00C8FF';
+  } else if(mode === 'c'){
+    // الأهوة — warm gold café
+    root.style.setProperty('--lobby-accent','#E8C96A');
+    root.style.setProperty('--lobby-accent-dim','rgba(232,201,106,.3)');
+    root.style.setProperty('--lobby-glow1','rgba(232,201,106,.55)');
+    root.style.setProperty('--lobby-glow2','rgba(201,120,20,.25)');
+    if(sheet){sheet.style.background='rgba(8,5,2,.94)';}
+    document.querySelectorAll('.tmode-btn').forEach(b=>b.style.cssText='');
+    const btnC=document.getElementById('lobby-tmode-c');
+    if(btnC)btnC.style.cssText='border-color:rgba(201,168,76,.55);background:rgba(201,168,76,.1);color:#C9A84C';
+  }
 }
 window.selectTunnelMode = selectTunnelMode;
+window.applyLobbyTheme = applyLobbyTheme;
 
 // ── BOOT ──
 window.addEventListener('DOMContentLoaded',()=>{
   WorldCanvas.init();
   TunnelSystem.init();
   WorldCanvas.setState('loading');
+  // Apply default theme B immediately
+  setTimeout(()=>applyLobbyTheme('b'),50);
   setTimeout(()=>{
     WorldCanvas.setState('lobby');
     showScreen('lobby');
