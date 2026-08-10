@@ -5,858 +5,955 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#04060a">
-<title>دبلة — DOBLA</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#030508">
+<title>دبلة</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
-/* ══════════════════════════════════════════
-   DOBLA — THE WORLD
-   Architecture: canvas is the ground,
-   CSS UI floats inside it.
-   Single light source: five stadium floodlights.
-   Everything reacts to game state.
-══════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════
+   DOBLA — PREMIUM GROUND-UP REBUILD
+   Philosophy: Breathing space. Emotion first.
+   One dominant zone. Everything earns its place.
+═══════════════════════════════════════════════ */
 :root{
-  --void:#04060a;
-  --raise:#0e0c14;
-  --panel:#13101a;
-  --border:rgba(255,255,255,.07);
-  --border2:rgba(255,255,255,.13);
-  --gold:#c9a84c;
-  --gold2:#e8c96a;
-  --gold-dim:rgba(201,168,76,.1);
-  --cream:#f5edd8;
-  --atk:#d63a45;
-  --atk2:#ff5560;
-  --def:#1e4d8c;
-  --def2:#2d6cbf;
-  --spc:#6b1fa8;
-  --spc2:#9b3de0;
-  --text:#f0e8d8;
-  --text2:#a89878;
-  --text3:#5a5040;
-  --muted:#3a3028;
-  --r:12px;--r2:18px;--r3:22px;
-  --cw:72px;--ch:108px;
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:var(--void)}
-body{font-family:'Cairo',sans-serif;color:var(--text);overscroll-behavior:none}
-.hidden{display:none!important}
-button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none}
+  /* Foundation */
+  --bg:        #030508;
+  --surface:   rgba(255,255,255,.04);
+  --surface2:  rgba(255,255,255,.07);
+  --border:    rgba(255,255,255,.07);
+  --border2:   rgba(255,255,255,.14);
 
-/* ══ THE WORLD CANVAS — always behind everything ══ */
-#world-canvas{
-  position:fixed;inset:0;
-  width:100%;height:100%;
-  z-index:0;
+  /* Gold system */
+  --g1: #c9a84c;
+  --g2: #e8c96a;
+  --g3: #f5df90;
+  --g-glow: rgba(201,168,76,.25);
+
+  /* Card type colors */
+  --atk:  #d63a45;
+  --def:  #1e5fa0;
+  --spc:  #7b2fbe;
+
+  /* Text */
+  --t1: #f0e8d8;
+  --t2: rgba(240,232,216,.55);
+  --t3: rgba(240,232,216,.28);
+  --t4: rgba(240,232,216,.12);
+
+  /* Radius */
+  --r:  10px;
+  --r2: 16px;
+  --r3: 22px;
+
+  /* Card */
+  --cw: 70px;
+  --ch: 104px;
+}
+
+/* ─── RESET ─── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Cairo',sans-serif;color:var(--t1)}
+.hidden{display:none!important}
+button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;background:none}
+
+/* ─── THE WORLD CANVAS ─── */
+#world-canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+
+/* ─── SCREENS ─── */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;z-index:10;overflow-y:auto;overflow-x:hidden;background:transparent}
+
+/* ════════════════════════════════
+   LOADING — full screen, emotion first
+════════════════════════════════ */
+#s-loading{justify-content:center}
+.loading-wrap{
+  display:flex;flex-direction:column;align-items:center;gap:0;
+  animation:fadeUp .7s ease-out forwards;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.loading-ball{
+  font-size:32px;margin-bottom:24px;
+  animation:ballSpin 3s ease-in-out infinite;
+}
+@keyframes ballSpin{0%,100%{transform:rotate(0) scale(1)}50%{transform:rotate(15deg) scale(1.1)}}
+.loading-title{
+  font-family:'Cairo';font-size:80px;font-weight:900;
+  color:var(--g1);letter-spacing:-4px;line-height:.9;
+  text-shadow:0 0 60px rgba(201,168,76,.4);
+}
+.loading-sub{
+  font-family:'Bebas Neue';font-size:12px;letter-spacing:10px;
+  color:var(--t3);margin-top:8px;
+}
+.loading-dots{display:flex;gap:6px;margin-top:32px}
+.ld{width:4px;height:4px;border-radius:50%;background:var(--g1);opacity:.2;animation:ldot 1.2s ease-in-out infinite}
+.ld:nth-child(2){animation-delay:.15s}.ld:nth-child(3){animation-delay:.3s}
+@keyframes ldot{0%,80%,100%{opacity:.15;transform:scale(.6)}40%{opacity:.9;transform:scale(1)}}
+
+/* ════════════════════════════════
+   LOBBY — breathe. one action at a time.
+════════════════════════════════ */
+#s-lobby{justify-content:flex-end;padding-bottom:0}
+.lobby-hero{
+  position:absolute;top:0;left:0;right:0;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;
+  padding-top:10vh;
   pointer-events:none;
 }
+.lobby-logo{
+  font-family:'Cairo';font-size:min(22vw,120px);font-weight:900;
+  color:var(--g1);letter-spacing:-6px;line-height:.85;
+  text-shadow:0 0 120px rgba(201,168,76,.45),0 0 40px rgba(201,168,76,.2);
+}
+.lobby-wordmark{
+  font-family:'Bebas Neue';font-size:11px;letter-spacing:10px;
+  color:var(--t4);margin-top:6px;
+}
+.lobby-rule{
+  width:40px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--g1),transparent);
+  margin:12px auto;
+}
+.lobby-tag{font-size:10px;color:var(--t3);letter-spacing:2px}
 
-/* ══ SCREENS — float above the canvas world ══ */
-.screen{
-  position:fixed;inset:0;
-  display:flex;flex-direction:column;align-items:center;
-  overflow-y:auto;overflow-x:hidden;
-  z-index:10;
-  /* Transparent — world shows through */
-  background:transparent;
+/* Bottom sheet — enters from below */
+.lobby-sheet{
+  width:100%;
+  background:rgba(3,5,8,.92);
+  border-top:1px solid rgba(255,255,255,.08);
+  border-radius:28px 28px 0 0;
+  padding:28px 24px 44px;
+  backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);
+  position:relative;z-index:2;
+  animation:sheetUp .5s cubic-bezier(.32,0,.67,0) .2s both;
 }
-
-/* ══════════════
-   LOADING
-══════════════ */
-#s-loading{justify-content:center}
-.load-center{
-  text-align:center;position:relative;z-index:2;
-  animation:loadFadeIn .6s ease-out forwards;
+@keyframes sheetUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+.sheet-handle{
+  width:36px;height:4px;border-radius:2px;
+  background:rgba(255,255,255,.15);
+  margin:0 auto 20px;
 }
-@keyframes loadFadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-.load-badge{
-  width:90px;height:90px;border-radius:50%;
-  background:radial-gradient(circle,rgba(201,168,76,.12) 0%,transparent 70%);
-  border:1px solid rgba(201,168,76,.2);
-  display:flex;align-items:center;justify-content:center;
-  margin:0 auto 18px;
-  animation:badgePulse 2.5s ease-in-out infinite;
-}
-@keyframes badgePulse{
-  0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.15),0 0 20px rgba(201,168,76,.1)}
-  50%{box-shadow:0 0 0 12px rgba(201,168,76,.0),0 0 40px rgba(201,168,76,.2)}
-}
-.load-ball{font-size:36px;line-height:1}
-.load-ar{
-  font-family:'Cairo';font-size:88px;font-weight:900;
-  color:var(--gold);letter-spacing:-4px;line-height:.85;
-  text-shadow:0 0 80px rgba(201,168,76,.5),0 0 30px rgba(201,168,76,.2);
-}
-.load-en{
-  font-family:'Bebas Neue';font-size:13px;
-  letter-spacing:11px;color:rgba(201,168,76,.4);margin-top:5px;
-}
-.load-rule{
-  width:1px;height:40px;
-  background:linear-gradient(to bottom,transparent,var(--gold) 50%,transparent);
-  margin:14px auto;
-}
-.load-tag{font-size:9px;color:var(--text3);letter-spacing:3px}
-.load-dots{display:flex;gap:7px;justify-content:center;margin-top:24px}
-.load-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);opacity:.2;animation:ld 1.3s ease-in-out infinite}
-.load-dot:nth-child(2){animation-delay:.18s}.load-dot:nth-child(3){animation-delay:.36s}
-@keyframes ld{0%,80%,100%{opacity:.15;transform:scale(.7)}40%{opacity:1;transform:scale(1)}}
-
-/* ══════════════
-   LOBBY
-══════════════ */
-#s-lobby{justify-content:flex-start}
-.lobby-inner{
-  position:relative;z-index:1;
-  width:100%;max-width:420px;padding:0 24px 64px;
-}
-.lobby-hero{padding:56px 0 40px;text-align:center}
-.lh-badge{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:4px 14px;
-  background:rgba(201,168,76,.06);
-  border:1px solid rgba(201,168,76,.14);
-  border-radius:20px;
-  font-size:8px;letter-spacing:3.5px;color:rgba(201,168,76,.55);
-  margin-bottom:18px;text-transform:uppercase;
-}
-.logo-ar{
-  font-family:'Cairo';font-size:96px;font-weight:900;color:var(--gold);
-  letter-spacing:-5px;line-height:.85;
-  text-shadow:0 0 100px rgba(201,168,76,.4),0 0 40px rgba(201,168,76,.2),0 6px 32px rgba(0,0,0,.95);
-}
-.logo-en{
-  font-family:'Bebas Neue';font-size:13px;
-  letter-spacing:11px;color:rgba(201,168,76,.38);margin-top:5px;
-}
-.logo-rule{
-  width:56px;height:1px;
-  background:linear-gradient(90deg,transparent,var(--gold),transparent);
-  margin:14px auto;
-}
-.logo-tag{font-size:10px;color:var(--text3);letter-spacing:2.5px}
-
-/* Glass form panels — float on world */
-.glass-panel{
-  background:rgba(8,6,12,.75);
-  border:1px solid rgba(255,255,255,.09);
-  border-radius:var(--r2);
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
-  padding:20px;margin-bottom:14px;
-  position:relative;overflow:hidden;
-}
-.glass-panel::before{
-  content:'';position:absolute;top:0;left:15%;right:15%;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);
-}
-.field-g{display:flex;flex-direction:column;gap:5px}
-.field-label{font-size:9px;color:var(--text3);letter-spacing:2px;text-align:right}
-.field-input{
-  width:100%;padding:13px 16px;
+.inp-name{
+  width:100%;padding:15px 18px;
   background:rgba(255,255,255,.05);
   border:1px solid rgba(255,255,255,.1);
-  border-radius:var(--r);
-  color:var(--text);font-family:'Cairo';font-size:16px;
-  outline:none;transition:all .18s;text-align:right;
+  border-radius:var(--r2);
+  color:var(--t1);font-family:'Cairo';font-size:17px;
+  outline:none;transition:all .2s;text-align:right;
+  margin-bottom:12px;
 }
-.field-input:focus{border-color:rgba(201,168,76,.4);background:rgba(255,255,255,.07)}
-.field-input::placeholder{color:var(--muted)}
-.mode-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-.mode-btn{
-  padding:16px 12px;
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:var(--r);
-  color:var(--text3);font-size:12px;font-weight:700;
-  text-align:center;transition:all .18s;
-}
-.mode-btn.sel{
-  border-color:rgba(201,168,76,.4);
-  background:rgba(201,168,76,.08);color:var(--gold);
-}
-.mode-icon{font-size:22px;display:block;margin-bottom:5px}
-.mode-sub{font-size:9px;color:var(--text3);margin-top:3px;font-weight:400;line-height:1.4}
-.mode-btn.sel .mode-sub{color:rgba(201,168,76,.55)}
+.inp-name:focus{border-color:rgba(201,168,76,.45);background:rgba(255,255,255,.07)}
+.inp-name::placeholder{color:var(--t3)}
 
-.btn-gold{
-  width:100%;padding:16px;
-  background:linear-gradient(135deg,#d4aa50,#a07828 60%,#c9a84c);
-  border:none;border-radius:var(--r);
-  color:#04060a;font-size:16px;font-weight:900;letter-spacing:.5px;
-  transition:transform .12s,box-shadow .2s;
-  box-shadow:0 4px 24px rgba(201,168,76,.3),0 1px 0 rgba(255,255,255,.25) inset;
+/* CTA — the ONLY button */
+.btn-cta{
+  width:100%;padding:17px;
+  background:linear-gradient(135deg,#d4aa50 0%,#9a7220 55%,#c9a84c 100%);
+  border-radius:var(--r2);
+  color:#030508;font-size:16px;font-weight:900;letter-spacing:.5px;
+  box-shadow:0 6px 28px rgba(201,168,76,.35),0 1px 0 rgba(255,255,255,.3) inset;
+  transition:transform .12s,box-shadow .12s;
+  margin-bottom:12px;
 }
-.btn-gold:active{transform:scale(.97)}
-.btn-ghost{
-  width:100%;padding:14px;background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:var(--r);color:var(--text2);font-size:14px;font-weight:600;
-  transition:all .18s;backdrop-filter:blur(10px);
+.btn-cta:active{transform:scale(.97);box-shadow:0 2px 12px rgba(201,168,76,.25)}
+
+/* Secondary link style — not a box */
+.btn-link{
+  display:block;text-align:center;
+  padding:12px;color:var(--t2);font-size:13px;
+  border:1px solid var(--border);border-radius:var(--r2);
+  transition:color .18s,border-color .18s;
 }
-.btn-ghost:active{border-color:var(--gold);color:var(--gold)}
-.btn-stack{display:flex;flex-direction:column;gap:9px}
-.divider{display:flex;align-items:center;gap:10px;color:var(--text3);font-size:10px;letter-spacing:1px}
-.divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.07)}
-.join-panel{
-  display:flex;flex-direction:column;gap:9px;
-  padding:16px;background:rgba(8,6,12,.8);
-  border:1px solid rgba(255,255,255,.1);border-radius:var(--r2);
-  margin-top:10px;backdrop-filter:blur(20px);
+.btn-link:active{color:var(--g1);border-color:rgba(201,168,76,.3)}
+
+/* Join panel */
+.join-expand{
+  margin-top:10px;overflow:hidden;
+  max-height:0;transition:max-height .3s ease;
 }
-.code-inp{
+.join-expand.open{max-height:200px}
+.join-inner{padding-top:4px;display:flex;flex-direction:column;gap:8px}
+.inp-code{
   width:100%;padding:14px;
-  background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.12);
-  border-radius:var(--r);color:var(--gold);font-family:'Bebas Neue';
-  font-size:40px;text-align:center;letter-spacing:14px;
+  background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);
+  border-radius:var(--r2);
+  color:var(--g1);font-family:'Bebas Neue';
+  font-size:42px;text-align:center;letter-spacing:16px;
   outline:none;text-transform:uppercase;
 }
-.code-inp:focus{border-color:var(--gold)}
-.code-inp::placeholder{color:var(--muted);font-size:14px;letter-spacing:2px;font-family:'Cairo'}
+.inp-code:focus{border-color:var(--g1)}
+.inp-code::placeholder{color:var(--t3);font-size:14px;letter-spacing:2px;font-family:'Cairo'}
 
-/* ══════════════
-   WAITING ROOM
-══════════════ */
-#s-room{justify-content:center;gap:22px;padding:32px 24px}
-.room-code-box{
-  background:rgba(8,6,12,.8);border:1px solid rgba(201,168,76,.2);
-  border-radius:var(--r2);padding:24px 36px;text-align:center;
+/* Mode picker — minimal, inside room screen */
+.mode-toggle{display:flex;gap:6px;margin-bottom:12px}
+.mode-chip{
+  flex:1;padding:11px 8px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:var(--r);
+  color:var(--t3);font-size:11px;font-weight:700;text-align:center;
+  transition:all .18s;
+}
+.mode-chip.sel{border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.08);color:var(--g1)}
+.mode-chip-icon{display:block;font-size:18px;margin-bottom:4px}
+
+/* ════════════════════════════════
+   WAITING ROOM — electric tension
+════════════════════════════════ */
+#s-room{justify-content:center;gap:0;padding:0 24px}
+.room-arena{
+  width:100%;max-width:360px;
+  display:flex;flex-direction:column;align-items:center;
+  gap:24px;
+}
+/* Big code display */
+.room-code-display{
+  text-align:center;
+  animation:fadeUp .4s ease-out forwards;
+}
+.rcd-label{font-size:9px;color:var(--t3);letter-spacing:3px;margin-bottom:6px;text-transform:uppercase}
+.rcd-code{
+  font-family:'Bebas Neue';font-size:72px;color:var(--g1);
+  letter-spacing:16px;line-height:1;
+  text-shadow:0 0 50px rgba(201,168,76,.4);
+}
+.rcd-hint{font-size:10px;color:var(--t3);margin-top:6px}
+.rcd-copy{
+  margin-top:10px;padding:6px 16px;
+  background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);
+  border-radius:20px;color:var(--g1);font-size:10px;
+}
+
+/* VS duel display — THE dramatic centrepiece */
+.vs-arena{
+  width:100%;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:var(--r3);
+  padding:24px 20px;
   position:relative;overflow:hidden;
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  box-shadow:0 0 60px rgba(201,168,76,.08);
 }
-.room-code-box::before{
-  content:'';position:absolute;top:0;left:15%;right:15%;height:1px;
-  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+.vs-arena::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 50% at 50% 100%,rgba(13,43,13,.4) 0%,transparent 70%);
+  pointer-events:none;
 }
-.rcb-label{font-size:9px;color:var(--text3);letter-spacing:3px;margin-bottom:6px}
-.rcb-code{
-  font-family:'Bebas Neue';font-size:58px;color:var(--gold);
-  letter-spacing:14px;line-height:1;
-  text-shadow:0 0 40px rgba(201,168,76,.4);
+.vs-players{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;position:relative;z-index:1;
 }
-.rcb-hint{font-size:10px;color:var(--text3);margin-top:6px}
-.copy-btn{
-  margin-top:12px;padding:7px 18px;
-  background:var(--gold-dim);border:1px solid rgba(201,168,76,.22);
-  border-radius:8px;color:var(--gold);font-family:'Cairo';font-size:11px;
-}
-.vs-row{width:100%;max-width:320px;display:flex;align-items:center;gap:12px}
-.pslot{
-  flex:1;background:rgba(8,6,12,.75);border:1px solid rgba(255,255,255,.08);
-  border-radius:var(--r2);padding:16px 12px;text-align:center;
-  transition:all .3s;backdrop-filter:blur(16px);
-}
-.pslot.active{border-color:rgba(201,168,76,.3)}
-.psdot{width:8px;height:8px;border-radius:50%;background:var(--muted);margin:0 auto 9px;transition:all .3s}
-.psdot.on{background:var(--gold);box-shadow:0 0 12px rgba(201,168,76,.5)}
-.psname{font-size:13px;font-weight:700}
-.psname.wait{font-size:10px;color:var(--text3);font-style:italic}
-.vs-sep{font-family:'Bebas Neue';font-size:24px;color:var(--atk);flex-shrink:0}
-.room-st{font-size:11px;color:var(--text3);text-align:center}
-.room-acts{display:flex;flex-direction:column;gap:9px;width:100%;max-width:320px}
-
-/* ══════════════
-   GAME SCREEN — UI floats on world canvas
-══════════════ */
-#s-game{justify-content:space-between}
-
-/* ── SCOREBOARD — broadcast overlay style ── */
-.scorebar{
-  width:100%;flex-shrink:0;position:relative;z-index:6;
-  padding:10px 16px 9px;
-  /* Dark glass bar at top */
-  background:rgba(4,6,10,.92);
-  border-bottom:1px solid rgba(255,255,255,.06);
-  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-}
-/* Gold line underneath — broadcast lower-third feel */
-.scorebar::after{
-  content:'';position:absolute;bottom:-1px;left:8%;right:8%;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(201,168,76,.25),transparent);
-}
-.sb-inner{display:flex;align-items:center;justify-content:space-between;max-width:420px;margin:0 auto}
-.sb-side{flex:1}
-.sb-side.mine{text-align:right}
-.sb-name{font-size:9px;color:rgba(255,255,255,.3);letter-spacing:1.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}
-.sb-name.mine{margin-left:auto}
-.sb-score{
-  font-family:'Bebas Neue';font-size:64px;line-height:1;color:rgba(255,255,255,.55);
-  transition:transform .22s cubic-bezier(.34,1.56,.64,1),color .25s,text-shadow .25s;
-}
-.sb-score.mine{color:var(--gold);text-shadow:0 0 32px rgba(201,168,76,.35)}
-.sb-score.pop{transform:scale(1.4)!important;color:var(--gold2)!important;text-shadow:0 0 60px rgba(232,201,106,.7)!important}
-.sb-mid{text-align:center;padding:0 8px;flex-shrink:0}
-.sb-colon{font-family:'Bebas Neue';font-size:14px;color:rgba(255,255,255,.2)}
-.mode-pill{
-  font-size:8px;padding:2px 7px;border-radius:8px;
-  background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.15);
-  color:rgba(201,168,76,.7);letter-spacing:1px;margin-top:3px;display:inline-block;
-}
-.notifs{display:flex;gap:3px;justify-content:center;margin-top:3px}
-.yc{width:6px;height:9px;background:#d4a017;border-radius:1px}
-.rc{width:6px;height:9px;background:var(--atk);border-radius:1px}
-.sus{font-size:7px;color:var(--atk);border:1px solid var(--atk);border-radius:3px;padding:0 3px}
-
-/* ── POSSESSION BAR ── */
-.possbar{
-  width:100%;padding:5px 16px;
-  background:rgba(0,0,0,.55);
-  border-bottom:1px solid rgba(255,255,255,.04);
-  text-align:center;font-size:10px;color:rgba(255,255,255,.3);
-  flex-shrink:0;position:relative;z-index:5;letter-spacing:1px;
-}
-.poss-hi{color:var(--gold);font-weight:700}
-
-/* ── OPPONENT HAND ── */
-.opp-zone{
-  width:100%;padding:5px 12px;
-  display:flex;justify-content:center;gap:4px;
-  flex-shrink:0;min-height:58px;align-items:center;
-  position:relative;z-index:4;
-}
-
-/* ── CARD BACK — premium dark green linen ── */
-.cback{
-  width:44px;height:63px;border-radius:8px;
-  position:relative;overflow:hidden;flex-shrink:0;
-  background:linear-gradient(155deg,#112a11,#0a1c0a 60%,#071407);
-  border:1px solid rgba(201,168,76,.18);
-  box-shadow:0 3px 12px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.06);
-}
-.cback::before{
-  content:'';position:absolute;inset:3px;
-  border:0.5px solid rgba(201,168,76,.14);border-radius:5px;
-  background:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(201,168,76,.04) 3px,rgba(201,168,76,.04) 4px);
-}
-.cback::after{
-  content:'◆';position:absolute;inset:0;
-  display:flex;align-items:center;justify-content:center;
-  font-size:12px;color:rgba(201,168,76,.2);
-}
-
-/* ── DECK + DISCARD ROW ── */
-.deck-row{
-  width:100%;padding:3px 18px;
-  display:flex;justify-content:space-between;
-  align-items:center;flex-shrink:0;
-  position:relative;z-index:4;
-}
-.deck-wrap{display:flex;flex-direction:column;align-items:center;gap:2px}
-.deck-stack{position:relative;width:44px;height:70px;flex-shrink:0}
-.deck-stack .cback{position:absolute}
-.deck-stack .cback:nth-child(1){bottom:0;right:0}
-.deck-stack .cback:nth-child(2){bottom:3px;right:2px;opacity:.65;transform:rotate(-1.5deg)}
-.deck-stack .cback:nth-child(3){bottom:6px;right:4px;opacity:.4;transform:rotate(-3deg)}
-.deck-count{
-  position:absolute;top:-9px;right:-9px;
-  width:20px;height:20px;border-radius:50%;
-  background:var(--panel);border:1px solid rgba(201,168,76,.3);
-  display:flex;align-items:center;justify-content:center;
-  font-size:9px;color:var(--gold);font-weight:700;z-index:2;
-}
-.deck-lbl{font-size:8px;color:var(--text3);letter-spacing:1px;margin-top:14px}
-.discard-wrap{display:flex;flex-direction:column;align-items:center;gap:2px}
-.discard-top{
-  width:44px;height:63px;border-radius:8px;
-  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
-  display:flex;align-items:center;justify-content:center;
-  font-size:9px;color:rgba(255,255,255,.2);letter-spacing:.5px;
-  transition:all .2s;
-}
-.discard-top.filled{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);font-size:20px}
-.deck-center{display:flex;flex-direction:column;align-items:center;gap:3px}
-.deck-center-lbl{font-size:8px;color:rgba(255,255,255,.2);letter-spacing:1.5px}
-.turn-ind{
-  font-size:10px;font-weight:700;
-  padding:4px 14px;border-radius:12px;
+.vs-player{flex:1;text-align:center}
+.vsp-avatar{
+  width:52px;height:52px;border-radius:50%;
+  background:rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.1);
-  background:rgba(255,255,255,.04);
-  color:rgba(255,255,255,.4);white-space:nowrap;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;margin:0 auto 8px;
   transition:all .3s;
 }
-.turn-ind.mine{
+.vsp-avatar.ready{
   border-color:rgba(201,168,76,.4);
-  background:rgba(201,168,76,.1);
-  color:var(--gold);
-  animation:turnPulse 1.8s ease-in-out infinite;
+  background:rgba(201,168,76,.08);
+  box-shadow:0 0 20px rgba(201,168,76,.2);
 }
-@keyframes turnPulse{
-  0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.25)}
-  50%{box-shadow:0 0 0 8px rgba(201,168,76,.0)}
+.vsp-name{font-size:12px;font-weight:700;color:var(--t1)}
+.vsp-name.waiting{font-size:10px;color:var(--t3);font-style:italic}
+.vs-divider{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  flex-shrink:0;
+}
+.vs-word{
+  font-family:'Bebas Neue';font-size:32px;color:var(--atk);
+  letter-spacing:2px;line-height:1;
+  text-shadow:0 0 20px rgba(214,58,69,.4);
+  animation:vsPulse 2s ease-in-out infinite;
+}
+@keyframes vsPulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+.vs-dots{display:flex;gap:3px}
+.vs-dot{width:3px;height:3px;border-radius:50%;background:var(--t4)}
+.vs-status{font-size:10px;color:var(--t3);text-align:center;margin-top:4px}
+
+/* Mode display in room */
+.room-mode-row{
+  display:flex;gap:8px;width:100%;
+}
+.rmode-btn{
+  flex:1;padding:12px 8px;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  color:var(--t3);font-size:11px;font-weight:700;text-align:center;
+  transition:all .18s;
+}
+.rmode-btn.sel{
+  border-color:rgba(201,168,76,.35);
+  background:rgba(201,168,76,.07);color:var(--g1);
+}
+.rmode-icon{font-size:16px;display:block;margin-bottom:3px}
+
+.room-actions{width:100%;display:flex;flex-direction:column;gap:8px}
+
+/* ════════════════════════════════
+   GAME SCREEN
+   4 zones: bar / battle / action / hand
+════════════════════════════════ */
+#s-game{justify-content:space-between}
+
+/* ── BROADCAST BAR ── */
+.broadcast{
+  width:100%;flex-shrink:0;
+  background:rgba(3,5,8,.94);
+  border-bottom:1px solid rgba(255,255,255,.05);
+  backdrop-filter:blur(24px);
+  padding:8px 16px;
+  position:relative;z-index:6;
+}
+.broadcast::after{
+  content:'';position:absolute;
+  bottom:-1px;left:8%;right:8%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(201,168,76,.2),transparent);
+}
+.bc-inner{
+  display:flex;align-items:center;
+  justify-content:space-between;
+  max-width:420px;margin:0 auto;
+}
+.bc-player{flex:1}
+.bc-player.me{text-align:right}
+.bc-name{
+  font-size:9px;color:var(--t3);letter-spacing:1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:80px;
+}
+.bc-name.me{margin-left:auto}
+.bc-score{
+  font-family:'Bebas Neue';font-size:60px;line-height:.95;
+  color:rgba(255,255,255,.4);
+  transition:transform .22s cubic-bezier(.34,1.56,.64,1),color .2s;
+}
+.bc-score.mine{color:var(--g1);text-shadow:0 0 24px rgba(201,168,76,.3)}
+.bc-score.pop{transform:scale(1.45)!important;color:var(--g2)!important;text-shadow:0 0 50px rgba(232,201,106,.7)!important}
+.bc-notifs{display:flex;gap:2px;margin-top:2px;justify-content:center}
+.yc{width:5px;height:8px;background:#d4a017;border-radius:1px}
+.rc{width:5px;height:8px;background:var(--atk);border-radius:1px}
+.bc-mid{text-align:center;padding:0 6px;flex-shrink:0}
+.bc-colon{font-family:'Bebas Neue';font-size:12px;color:rgba(255,255,255,.15)}
+.bc-mode{
+  font-size:7px;letter-spacing:1.5px;color:rgba(201,168,76,.6);
+  border:1px solid rgba(201,168,76,.15);border-radius:6px;
+  padding:2px 6px;margin-top:3px;display:inline-block;
+  background:rgba(201,168,76,.06);
 }
 
-/* ── PLAY ZONE — THE TABLE ── */
-.play-zone{
+/* ── BATTLE ZONE — dominant, 50%+ height ── */
+.battle-zone{
   flex:1;width:100%;
   display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  gap:10px;padding:8px 16px;
-  position:relative;z-index:3;overflow:hidden;
-}
-/* The canvas pitch stripes show through — this is just a transparent layer */
-.pitch-table{
-  position:absolute;inset:0;pointer-events:none;
-  /* Glass table surface — reflects the canvas beneath */
-  background:rgba(0,0,0,.15);
-}
-/* Halfway line */
-.pitch-table::before{
-  content:'';position:absolute;
-  left:6%;right:6%;top:50%;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.09) 20%,rgba(255,255,255,.09) 80%,transparent);
-}
-/* Center circle */
-.pitch-table::after{
-  content:'';position:absolute;
-  width:70px;height:70px;
-  border:1px solid rgba(255,255,255,.07);border-radius:50%;
-  top:50%;left:50%;transform:translate(-50%,-50%);
-}
-/* Penalty arc */
-.pen-arc{
-  position:absolute;top:4%;left:50%;transform:translateX(-50%);
-  width:88px;height:34px;
-  border-bottom:1px solid rgba(255,255,255,.05);
-  border-left:1px solid rgba(255,255,255,.05);
-  border-right:1px solid rgba(255,255,255,.05);
-  border-radius:0 0 44px 44px;
-  pointer-events:none;
-}
-.pen-arc-bot{
-  position:absolute;bottom:4%;left:50%;transform:translateX(-50%);
-  width:88px;height:34px;
-  border-top:1px solid rgba(255,255,255,.05);
-  border-left:1px solid rgba(255,255,255,.05);
-  border-right:1px solid rgba(255,255,255,.05);
-  border-radius:44px 44px 0 0;
-  pointer-events:none;
+  align-items:center;justify-content:space-between;
+  padding:8px 12px;
+  position:relative;z-index:3;
+  overflow:hidden;min-height:0;
 }
 
-/* Clash slots */
-.clash-row{
-  display:flex;gap:14px;align-items:center;justify-content:center;
+/* Opponent area inside battle zone */
+.opp-area{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  width:100%;
+}
+.opp-cards{display:flex;gap:4px;justify-content:center}
+.opp-name{font-size:9px;color:var(--t3);letter-spacing:1px}
+
+/* Center clash area */
+.clash-center{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
   position:relative;z-index:2;
 }
-.play-slot{
+.clash-slots{display:flex;gap:10px;align-items:center}
+.clash-slot{
   width:var(--cw);height:var(--ch);
   border-radius:var(--r);
-  border:1px solid rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.07);
+  background:rgba(0,0,0,.3);
   display:flex;align-items:center;justify-content:center;
-  font-size:9px;color:rgba(255,255,255,.2);letter-spacing:.5px;
+  font-size:8px;color:var(--t4);
   position:relative;overflow:hidden;
-  background:rgba(0,0,0,.35);
-  box-shadow:0 4px 16px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);
   backdrop-filter:blur(4px);
 }
-.play-slot.filled{border:none;background:transparent;backdrop-filter:none}
-.clash-sep{
-  font-family:'Bebas Neue';font-size:12px;
-  color:rgba(214,58,69,.45);flex-shrink:0;letter-spacing:2px;
-}
-.status-msg{
-  font-size:13px;font-weight:900;color:var(--gold);
-  text-align:center;min-height:18px;letter-spacing:.5px;
-  position:relative;z-index:2;
-  text-shadow:0 0 20px rgba(201,168,76,.35);
-}
-.event-msg{
-  font-size:10px;color:rgba(255,255,255,.3);text-align:center;
-  min-height:14px;position:relative;z-index:2;
+.clash-slot.filled{border:none;background:none;backdrop-filter:none}
+.clash-vs-sep{
+  font-family:'Bebas Neue';font-size:14px;
+  color:rgba(214,58,69,.35);letter-spacing:2px;
 }
 
-/* ── ACTION BAR ── */
-.abar{
-  width:100%;display:flex;gap:8px;padding:0 16px 4px;
-  justify-content:center;flex-shrink:0;min-height:44px;align-items:center;
-  position:relative;z-index:5;
+/* Status line */
+.battle-status{
+  font-size:12px;font-weight:900;color:var(--g1);
+  letter-spacing:.5px;text-align:center;min-height:18px;
+  text-shadow:0 0 16px rgba(201,168,76,.3);
+}
+.battle-event{
+  font-size:9px;color:var(--t3);text-align:center;
+  min-height:13px;letter-spacing:.3px;
+}
+
+/* Deck/Discard — minimal, inside battle zone */
+.deck-strip{
+  display:flex;align-items:center;justify-content:space-between;
+  width:100%;padding:2px 4px;
+}
+.ds-pile{display:flex;flex-direction:column;align-items:center;gap:3px}
+.ds-label{font-size:7px;color:var(--t4);letter-spacing:1px}
+.ds-stack{position:relative;width:38px;height:55px}
+.ds-card{
+  position:absolute;width:36px;height:53px;border-radius:7px;
+  background:linear-gradient(155deg,#0d2510,#081508);
+  border:1px solid rgba(201,168,76,.15);
+}
+.ds-card:nth-child(1){bottom:0;right:0}
+.ds-card:nth-child(2){bottom:2px;right:2px;opacity:.6;transform:rotate(-2deg)}
+.ds-card:nth-child(3){bottom:4px;right:4px;opacity:.35;transform:rotate(-4deg)}
+.ds-card::after{content:'◆';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(201,168,76,.15)}
+.ds-count{
+  position:absolute;top:-8px;right:-8px;
+  width:18px;height:18px;border-radius:50%;
+  background:rgba(3,5,8,.9);border:1px solid rgba(201,168,76,.3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;color:var(--g1);font-weight:700;z-index:2;
+}
+.ds-discard{
+  width:36px;height:53px;border-radius:7px;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.03);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:var(--t4);transition:all .2s;
+}
+.ds-discard.has{font-size:18px;background:rgba(255,255,255,.05)}
+
+/* Turn pill — center of deck strip */
+.turn-pill{
+  font-size:9px;font-weight:700;
+  padding:5px 14px;border-radius:20px;
+  border:1px solid var(--border2);
+  color:var(--t2);transition:all .25s;
+  white-space:nowrap;
+}
+.turn-pill.mine{
+  border-color:rgba(201,168,76,.4);
+  background:rgba(201,168,76,.1);
+  color:var(--g1);
+  animation:pillPulse 1.6s ease-in-out infinite;
+}
+@keyframes pillPulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.2)}50%{box-shadow:0 0 0 7px rgba(201,168,76,.0)}}
+
+/* Possession dot */
+.poss-strip{
+  font-size:9px;color:var(--t3);text-align:center;
+  letter-spacing:.5px;padding:1px 0;
+}
+.poss-hi{color:var(--g1);font-weight:700}
+
+/* ── ACTION ROW ── */
+.action-row{
+  width:100%;padding:0 12px 4px;
+  display:flex;gap:8px;justify-content:center;
+  flex-shrink:0;min-height:42px;align-items:center;
+  z-index:5;position:relative;
 }
 .btn-play{
-  padding:12px 28px;
-  background:linear-gradient(135deg,#d4aa50,#a07828 55%,#c9a84c);
-  border:none;border-radius:var(--r);
-  color:#04060a;font-size:14px;font-weight:900;
-  display:none;transition:transform .12s;
-  box-shadow:0 3px 20px rgba(201,168,76,.35),0 1px 0 rgba(255,255,255,.2) inset;
+  padding:11px 24px;
+  background:linear-gradient(135deg,#d4aa50,#9a7220 55%,#c9a84c);
+  border-radius:var(--r2);
+  color:#030508;font-size:13px;font-weight:900;
+  display:none;
+  box-shadow:0 4px 20px rgba(201,168,76,.35),0 1px 0 rgba(255,255,255,.25) inset;
+  transition:transform .1s;
 }
 .btn-play:active{transform:scale(.96)}
 .btn-burn{
-  padding:9px 14px;background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.1);border-radius:var(--r);
-  color:rgba(255,255,255,.4);font-size:11px;display:none;
-  backdrop-filter:blur(10px);
+  padding:9px 12px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:var(--r2);
+  color:var(--t3);font-size:11px;display:none;
 }
 
 /* Strategy bar */
-.strategy-bar{
-  width:100%;padding:4px 16px;
-  background:rgba(107,31,168,.07);
-  border-top:1px solid rgba(107,31,168,.12);
-  flex-shrink:0;display:none;align-items:center;justify-content:center;gap:8px;
+.strat-bar{
+  width:100%;padding:4px 12px;
+  background:rgba(123,47,190,.07);
+  border-top:1px solid rgba(123,47,190,.12);
+  flex-shrink:0;display:none;align-items:center;justify-content:center;gap:7px;
 }
-.strategy-bar.active{display:flex}
+.strat-bar.on{display:flex}
 .draw-btn{
-  padding:7px 14px;background:rgba(107,31,168,.14);
-  border:1px solid rgba(107,31,168,.28);
+  padding:6px 13px;background:rgba(123,47,190,.14);
+  border:1px solid rgba(123,47,190,.28);
   border-radius:8px;color:#c084fc;font-size:12px;font-weight:700;
 }
-.draw-btn.sel{background:rgba(107,31,168,.35);border-color:var(--spc2)}
-.draw-label{font-size:9px;color:rgba(255,255,255,.25)}
+.draw-btn.sel{background:rgba(123,47,190,.35);border-color:var(--spc)}
+.draw-lbl{font-size:9px;color:var(--t3)}
 
 /* ── HAND ── */
-.hand-wrap{
-  width:100%;padding:4px 0 14px;overflow-x:auto;scrollbar-width:none;
-  display:flex;justify-content:center;flex-shrink:0;position:relative;z-index:5;
+.hand-zone{
+  width:100%;padding:4px 0 env(safe-area-inset-bottom,12px);
+  overflow-x:auto;scrollbar-width:none;
+  display:flex;justify-content:center;
+  flex-shrink:0;z-index:5;position:relative;
 }
-.hand-wrap::-webkit-scrollbar{display:none}
-.hand{display:flex;gap:7px;padding:8px 16px;align-items:flex-end}
+.hand-zone::-webkit-scrollbar{display:none}
+.hand{display:flex;gap:6px;padding:6px 14px;align-items:flex-end}
 
 /* ══════════════════════════════════════
-   CARD SYSTEM
-   Linen surface + type colors + geometry
+   CARD SYSTEM — real trading card anatomy
+   Top: type badge  |  Center: icon  |  Bottom: name
 ══════════════════════════════════════ */
 .card{
   width:var(--cw);height:var(--ch);
   border-radius:var(--r);
-  position:relative;cursor:pointer;flex-shrink:0;overflow:hidden;
-  transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s;
+  position:relative;cursor:pointer;flex-shrink:0;
+  overflow:hidden;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .18s;
 }
 .card:active{transform:translateY(-18px) scale(1.08)!important}
-.card.selected{transform:translateY(-24px) scale(1.1);z-index:10}
-.card.unplayable{opacity:.18;cursor:not-allowed;filter:grayscale(1)}
+.card.sel{transform:translateY(-22px) scale(1.1);z-index:10}
+.card.dead{opacity:.15;cursor:not-allowed;filter:grayscale(1)}
 
-/* Linen card faces */
-.card.atk{background:linear-gradient(155deg,#f9eedb 0%,#edddbe 55%,#e2ceaa 100%)}
-.card.def{background:linear-gradient(155deg,#dde9f6 0%,#ccdaee 55%,#bacdea 100%)}
-.card.spc{background:linear-gradient(155deg,#ecddf8 0%,#e0ccf0 55%,#d2bbe6 100%)}
+/* ── Card face: linen warm light ── */
+.card.atk{background:linear-gradient(160deg,#faf0de 0%,#eedfc0 50%,#e3cea8 100%)}
+.card.def{background:linear-gradient(160deg,#deeaf8 0%,#ccddf0 50%,#b9cde7 100%)}
+.card.spc{background:linear-gradient(160deg,#eedff8 0%,#e0cef0 50%,#d1bce8 100%)}
 
-/* Linen weave texture */
+/* Linen micro-texture */
 .card::before{
   content:'';position:absolute;inset:0;border-radius:inherit;
   background-image:
-    repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,.2) 2px,rgba(255,255,255,.2) 3px),
+    repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,.18) 2px,rgba(255,255,255,.18) 3px),
     repeating-linear-gradient(90deg,transparent,transparent 4px,rgba(255,255,255,.07) 4px,rgba(255,255,255,.07) 5px);
-  opacity:.4;pointer-events:none;
+  opacity:.38;pointer-events:none;
 }
 
-/* Top accent stripe */
-.card-stripe{
-  position:absolute;top:0;left:0;right:0;height:4px;
+/* Physical shadow */
+.card{box-shadow:0 4px 12px rgba(0,0,0,.7),0 1px 3px rgba(0,0,0,.5)}
+.card.sel.atk{box-shadow:0 0 0 2px var(--atk),0 16px 32px rgba(214,58,69,.5),0 4px 12px rgba(0,0,0,.6)}
+.card.sel.def{box-shadow:0 0 0 2px #2d6cbf,0 16px 32px rgba(30,95,160,.5),0 4px 12px rgba(0,0,0,.6)}
+.card.sel.spc{box-shadow:0 0 0 2px #9b3de0,0 16px 32px rgba(123,47,190,.5),0 4px 12px rgba(0,0,0,.6)}
+
+/* ── Card anatomy ── */
+/* 1. Top stripe */
+.c-stripe{
+  position:absolute;top:0;left:0;right:0;height:3px;
   border-radius:var(--r) var(--r) 0 0;
 }
-.card.atk .card-stripe{background:linear-gradient(90deg,#b82030,var(--atk2))}
-.card.def .card-stripe{background:linear-gradient(90deg,var(--def),var(--def2))}
-.card.spc .card-stripe{background:linear-gradient(90deg,var(--spc),var(--spc2))}
+.card.atk .c-stripe{background:linear-gradient(90deg,#b01828,#e83845)}
+.card.def .c-stripe{background:linear-gradient(90deg,#1258a0,#2d6cbf)}
+.card.spc .c-stripe{background:linear-gradient(90deg,#6a20a8,#9b3de0)}
 
-/* Selected shadow glow */
-.card.atk{box-shadow:0 5px 14px rgba(0,0,0,.65)}
-.card.def{box-shadow:0 5px 14px rgba(0,0,0,.65)}
-.card.spc{box-shadow:0 5px 14px rgba(0,0,0,.65)}
-.card.atk.selected{box-shadow:0 0 0 2px var(--atk),0 18px 36px rgba(214,58,69,.55),0 5px 14px rgba(0,0,0,.5)}
-.card.def.selected{box-shadow:0 0 0 2px var(--def2),0 18px 36px rgba(30,77,140,.55),0 5px 14px rgba(0,0,0,.5)}
-.card.spc.selected{box-shadow:0 0 0 2px var(--spc2),0 18px 36px rgba(107,31,168,.55),0 5px 14px rgba(0,0,0,.5)}
+/* 2. Type badge */
+.c-type{
+  position:absolute;top:7px;left:0;right:0;
+  text-align:center;font-size:6px;font-weight:900;
+  letter-spacing:1.5px;opacity:.55;
+}
+.card.atk .c-type{color:#a01020}
+.card.def .c-type{color:#0f4080}
+.card.spc .c-type{color:#5a1090}
 
-/* HOLOGRAPHIC shimmer — Elite tier */
+/* 3. Icon — dominant center */
+.c-icon{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-58%);
+  font-size:30px;line-height:1;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.3));
+}
+
+/* 4. Name — bottom third */
+.c-name{
+  position:absolute;bottom:12px;left:4px;right:4px;
+  text-align:center;
+  font-size:10px;font-weight:900;
+  color:#120c04;line-height:1.2;
+}
+.c-en{
+  position:absolute;bottom:4px;left:4px;right:4px;
+  text-align:center;font-size:6px;color:#7a6848;letter-spacing:.3px;
+}
+
+/* 5. دبلة watermark */
+.c-mark{
+  position:absolute;bottom:14px;right:5px;
+  font-size:7px;opacity:.15;
+}
+.card.atk .c-mark{color:#b01828}
+.card.def .c-mark{color:#1258a0}
+.card.spc .c-mark{color:#6a20a8}
+
+/* Chain badge */
+.c-chain{
+  position:absolute;top:-5px;right:-5px;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--atk);display:flex;align-items:center;justify-content:center;
+  font-size:7px;color:#fff;font-weight:900;
+  border:1px solid rgba(255,255,255,.2);z-index:6;
+}
+
+/* Card back — opponent */
+.cback{
+  width:38px;height:55px;border-radius:7px;flex-shrink:0;
+  position:relative;overflow:hidden;
+  background:linear-gradient(160deg,#0d2510 0%,#081508 60%,#061006 100%);
+  border:1px solid rgba(201,168,76,.15);
+  box-shadow:0 2px 8px rgba(0,0,0,.6);
+}
+.cback::before{content:'';position:absolute;inset:3px;border:0.5px solid rgba(201,168,76,.12);border-radius:4px;background:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(201,168,76,.04) 3px,rgba(201,168,76,.04) 4px)}
+.cback::after{content:'◆';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(201,168,76,.18)}
+
+/* Slot card (played on pitch) */
+.slot-card{
+  width:100%;height:100%;border-radius:9px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;padding:6px;position:relative;overflow:hidden;
+}
+.slot-card.atk{background:linear-gradient(160deg,#faf0de,#e3cea8)}
+.slot-card.def{background:linear-gradient(160deg,#deeaf8,#b9cde7)}
+.slot-card.spc{background:linear-gradient(160deg,#eedff8,#d1bce8)}
+.slot-card .c-stripe{position:absolute;top:0;left:0;right:0;height:3px;border-radius:9px 9px 0 0}
+.slot-card .c-icon{position:static;transform:none;font-size:24px}
+.slot-card .c-name{position:static;font-size:10px;font-weight:900;color:#120c04}
+
+/* HOLOGRAPHIC: Elite */
 .card.holo::after{
   content:'';position:absolute;inset:0;border-radius:inherit;
-  background:linear-gradient(115deg,
-    transparent 18%,rgba(201,168,76,.12) 32%,
-    rgba(255,255,255,.2) 42%,rgba(255,200,80,.12) 52%,
-    transparent 66%
-  );
-  background-size:280% 280%;
-  animation:holoShimmer 2.6s ease-in-out infinite;
+  background:linear-gradient(120deg,transparent 20%,rgba(201,168,76,.12) 34%,rgba(255,255,255,.22) 44%,rgba(255,200,80,.12) 54%,transparent 68%);
+  background-size:260% 260%;
+  animation:holoShimmer 2.5s ease-in-out infinite;
   pointer-events:none;mix-blend-mode:screen;
 }
-@keyframes holoShimmer{0%{background-position:280% 0}50%{background-position:0 160%}100%{background-position:280% 0}}
+@keyframes holoShimmer{0%{background-position:260% 0}50%{background-position:0 160%}100%{background-position:260% 0}}
 
-/* LEGEND tier */
-.card.legend{border:1px solid rgba(201,168,76,.4);box-shadow:0 0 18px rgba(201,168,76,.22)}
+/* HOLOGRAPHIC: Legend */
+.card.legend{border:1px solid rgba(201,168,76,.38);box-shadow:0 0 16px rgba(201,168,76,.2),0 4px 12px rgba(0,0,0,.7)!important}
 .card.legend::after{
   content:'';position:absolute;inset:0;border-radius:inherit;
-  background:linear-gradient(115deg,
-    transparent 3%,rgba(201,168,76,.22) 18%,rgba(255,255,255,.3) 33%,
-    rgba(232,201,106,.24) 48%,rgba(255,255,255,.15) 63%,transparent 78%
-  );
-  background-size:380% 380%;
-  animation:legendShine 1.9s ease-in-out infinite;
+  background:linear-gradient(120deg,transparent 5%,rgba(201,168,76,.2) 20%,rgba(255,255,255,.3) 35%,rgba(232,201,106,.22) 50%,rgba(255,255,255,.14) 65%,transparent 80%);
+  background-size:360% 360%;
+  animation:legendShine 1.8s ease-in-out infinite;
   pointer-events:none;mix-blend-mode:screen;
 }
-@keyframes legendShine{0%{background-position:380% 0}50%{background-position:0 220%}100%{background-position:380% 0}}
+@keyframes legendShine{0%{background-position:360% 0}50%{background-position:0 200%}100%{background-position:360% 0}}
 
-/* Card body */
-.card-body{
-  position:absolute;inset:0;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:4px;padding:12px 5px 8px;
-}
-.card-type{
-  font-size:7px;letter-spacing:1.2px;
-  position:absolute;top:9px;right:0;left:0;
-  text-align:center;font-weight:900;opacity:.55;
-}
-.card.atk .card-type{color:#a01822}
-.card.def .card-type{color:#1a3d7c}
-.card.spc .card-type{color:#5a1a88}
-.card-ico{font-size:28px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));margin-bottom:2px}
-.card-name{font-size:11px;font-weight:900;color:#140c04;text-align:center;line-height:1.15}
-.card-sub{font-size:7px;color:#7a6848;text-align:center;margin-top:1px;letter-spacing:.3px}
-/* دبلة diamond watermark */
-.card-body::before{content:'◆';position:absolute;bottom:5px;right:6px;font-size:7px;opacity:.18;line-height:1}
-.card.atk .card-body::before{color:var(--atk)}
-.card.def .card-body::before{color:var(--def)}
-.card.spc .card-body::before{color:var(--spc)}
-/* Chain interrupt badge */
-.chain-badge{position:absolute;top:-5px;right:-5px;width:15px;height:15px;border-radius:50%;background:var(--atk);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:7px;color:white;font-weight:900;z-index:6}
-
-/* Slot card */
-.slot-card{width:100%;height:100%;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px;position:relative;overflow:hidden}
-.slot-card.atk{background:linear-gradient(155deg,#f9eedb,#e2ceaa)}
-.slot-card.def{background:linear-gradient(155deg,#dde9f6,#bacdea)}
-.slot-card.spc{background:linear-gradient(155deg,#ecddf8,#d2bbe6)}
-.slot-card .card-stripe{position:absolute;top:0;left:0;right:0;height:3px;border-radius:10px 10px 0 0}
-.slot-ico{font-size:26px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
-.slot-name{font-size:11px;font-weight:900;color:#140c04;text-align:center}
-
-/* ══════════════
-   OVERLAYS
-══════════════ */
+/* ══════════════════════════════════════
+   OVERLAYS — bottom sheet style
+══════════════════════════════════════ */
 .overlay{
-  position:fixed;inset:0;background:rgba(4,6,10,.88);
+  position:fixed;inset:0;background:rgba(3,5,8,.88);
   display:flex;align-items:flex-end;justify-content:center;
-  z-index:100;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  z-index:100;backdrop-filter:blur(16px);
 }
 .overlay.center{align-items:center}
 .ovp{
   width:100%;max-width:420px;
-  background:rgba(13,10,18,.95);
-  border-radius:24px 24px 0 0;padding:26px 22px 48px;
+  background:rgba(10,8,16,.97);
+  border-radius:24px 24px 0 0;
+  padding:24px 22px 48px;
   border-top:1px solid rgba(255,255,255,.1);
   position:relative;overflow:hidden;
 }
-.ovp::before{content:'';position:absolute;top:0;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.ovp::before{content:'';position:absolute;top:0;left:22%;right:22%;height:1px;background:linear-gradient(90deg,transparent,var(--g1),transparent)}
 .ovp.center{border-radius:22px;margin:24px}
-.ov-title{font-size:20px;font-weight:900;text-align:center;margin-bottom:4px}
-.ov-sub{font-size:11px;color:var(--text3);text-align:center;margin-bottom:18px;letter-spacing:.5px}
-.ov-acts{display:flex;flex-direction:column;gap:9px;margin-top:18px}
+.ov-title{font-size:20px;font-weight:900;text-align:center;margin-bottom:3px}
+.ov-sub{font-size:11px;color:var(--t3);text-align:center;margin-bottom:18px;letter-spacing:.3px}
+.ov-acts{display:flex;flex-direction:column;gap:8px;margin-top:16px}
 .var-picks{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
-.var-pick{padding:18px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:var(--r2);text-align:center;cursor:pointer;transition:all .18s}
-.var-pick:active{border-color:var(--gold);background:var(--gold-dim)}
-.var-ico{font-size:34px;display:block;margin-bottom:6px}
+.var-pick{padding:18px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:var(--r3);text-align:center;cursor:pointer;transition:all .18s}
+.var-pick:active{border-color:var(--g1);background:rgba(201,168,76,.08)}
+.var-ico{font-size:32px;display:block;margin-bottom:6px}
 .var-lbl{font-size:14px;font-weight:900}
-.var-hint{font-size:9px;color:var(--text3);margin-top:3px}
-.pen-ico{font-size:60px;text-align:center;margin-bottom:10px}
-.pen-opts{display:flex;flex-direction:column;gap:9px}
+.var-hint{font-size:9px;color:var(--t3);margin-top:3px}
+.pen-ico{font-size:56px;text-align:center;margin-bottom:10px}
+.pen-opts{display:flex;flex-direction:column;gap:8px}
 .rs-hand{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin:14px 0}
-.rs-card{padding:8px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:9px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;color:var(--text2);transition:all .15s}
-.rs-card.chosen{border-color:var(--spc2);background:rgba(107,31,168,.15);color:#c084fc}
-.rs-count{font-size:10px;color:var(--text3);text-align:center}
+.rs-card{padding:8px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;color:var(--t2);transition:all .15s}
+.rs-card.chosen{border-color:var(--spc);background:rgba(123,47,190,.15);color:#c084fc}
+.rs-count{font-size:10px;color:var(--t3);text-align:center}
 
-/* ══════════════
+/* ══════════════════════════════════════
    CINEMATIC FLASHES
-══════════════ */
-.cf-goal,.cf-og,.cf-var{
-  position:fixed;inset:0;z-index:200;
-  display:flex;align-items:center;justify-content:center;
-  pointer-events:none;opacity:0;
-}
-.cf-goal.show{animation:cfShow 1.6s ease-out forwards}
-.cf-og.show{animation:cfShow 2s ease-out forwards}
-.cf-var.show{animation:cfShow 1.8s ease-out forwards}
-@keyframes cfShow{0%{opacity:0}8%{opacity:1}72%{opacity:1}100%{opacity:0}}
-.cf-goal-bg{position:absolute;inset:0;background:radial-gradient(ellipse 90% 70% at 50% 50%,rgba(201,168,76,.42) 0%,transparent 65%),radial-gradient(ellipse 60% 40% at 50% 50%,rgba(255,220,100,.18) 0%,transparent 50%);animation:cfBg 1.6s ease-out forwards}
-.cf-og-bg{position:absolute;inset:0;background:radial-gradient(ellipse 90% 70% at 50% 50%,rgba(214,58,69,.32) 0%,transparent 65%);animation:cfBg 2s ease-out forwards}
-.cf-var-bg{position:absolute;inset:0;background:radial-gradient(ellipse 90% 70% at 50% 50%,rgba(30,77,200,.32) 0%,transparent 65%);animation:cfBg 1.8s ease-out forwards}
-@keyframes cfBg{0%{transform:scale(.4);opacity:0}12%{transform:scale(1);opacity:1}100%{opacity:0}}
+══════════════════════════════════════ */
+.cf{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0}
+.cf.show{animation:cfAnim 1.7s ease-out forwards}
+@keyframes cfAnim{0%{opacity:0}8%{opacity:1}70%{opacity:1}100%{opacity:0}}
+.cf-bg{position:absolute;inset:0;animation:cfBg 1.7s ease-out forwards}
+@keyframes cfBg{0%{transform:scale(.3);opacity:0}12%{transform:scale(1);opacity:1}100%{opacity:0}}
 .cf-txt{position:relative;z-index:2;text-align:center}
-.cf-word{font-family:'Bebas Neue';font-size:112px;letter-spacing:3px;color:var(--gold);display:block;line-height:.85;text-shadow:0 0 80px rgba(201,168,76,.9),0 0 160px rgba(201,168,76,.4);animation:cfWord 1.6s ease-out forwards}
-.cf-og .cf-word{font-size:72px;color:var(--atk);text-shadow:0 0 60px rgba(214,58,69,.7)}
-.cf-var .cf-word{font-size:80px;color:#5a9fff;text-shadow:0 0 60px rgba(90,159,255,.6);letter-spacing:8px}
-@keyframes cfWord{0%{transform:scale(.55);opacity:0}12%{transform:scale(1.06);opacity:1}20%{transform:scale(1)}78%{opacity:1}100%{opacity:0}}
-.cf-sub{font-size:12px;color:rgba(255,255,255,.6);letter-spacing:4px;display:block;margin-top:8px;animation:cfSub 1.6s ease-out .08s forwards;opacity:0}
-@keyframes cfSub{0%{opacity:0;transform:translateY(10px)}18%{opacity:1;transform:translateY(0)}78%{opacity:1}100%{opacity:0}}
+.cf-big{
+  font-family:'Bebas Neue';font-size:min(28vw,120px);letter-spacing:2px;
+  display:block;line-height:.85;
+  animation:cfBig 1.7s ease-out forwards;
+}
+@keyframes cfBig{0%{opacity:0;transform:scale(.5)}10%{opacity:1;transform:scale(1.05)}18%{transform:scale(1)}78%{opacity:1}100%{opacity:0}}
+.cf-sm{
+  font-size:11px;letter-spacing:4px;display:block;
+  margin-top:8px;color:rgba(255,255,255,.55);
+  animation:cfSm 1.7s ease-out .07s forwards;opacity:0;
+}
+@keyframes cfSm{0%{opacity:0;transform:translateY(10px)}18%{opacity:1;transform:translateY(0)}78%{opacity:1}100%{opacity:0}}
+/* Goal: gold */
+#cf-goal .cf-bg{background:radial-gradient(ellipse 90% 70% at 50% 50%,rgba(201,168,76,.45) 0%,transparent 65%),radial-gradient(ellipse 60% 40% at 50% 50%,rgba(255,220,100,.2) 0%,transparent 50%)}
+#cf-goal .cf-big{color:var(--g1);text-shadow:0 0 80px rgba(201,168,76,.9),0 0 160px rgba(201,168,76,.4)}
+/* Own goal: red */
+#cf-og .cf-bg{background:radial-gradient(ellipse 90% 70% at 50% 50%,rgba(214,58,69,.35) 0%,transparent 65%)}
+#cf-og .cf-big{color:var(--atk);text-shadow:0 0 60px rgba(214,58,69,.7);font-size:min(22vw,94px)}
+/* VAR: blue */
+#cf-var .cf-bg{background:radial-gradient(ellipse 90% 70% at 50% 50%,rgba(30,77,200,.32) 0%,transparent 65%)}
+#cf-var .cf-big{color:#5a9fff;text-shadow:0 0 60px rgba(90,159,255,.6);letter-spacing:10px;font-size:min(20vw,88px)}
 
 /* Legend moment */
-@keyframes legGold{0%,100%{text-shadow:0 0 32px rgba(201,168,76,.35)}50%{text-shadow:0 0 48px rgba(201,168,76,.65),0 0 90px rgba(201,168,76,.22)}}
-.scorebar.legend .sb-score.mine{animation:legGold 2s ease-in-out infinite}
-.scorebar.legend{border-bottom-color:rgba(201,168,76,.2)}
+@keyframes legGold{0%,100%{text-shadow:0 0 24px rgba(201,168,76,.3)}50%{text-shadow:0 0 48px rgba(201,168,76,.65),0 0 80px rgba(201,168,76,.2)}}
+.broadcast.legend .bc-score.mine{animation:legGold 2s ease-in-out infinite}
+.broadcast.legend{border-bottom-color:rgba(201,168,76,.18)}
 
 /* Game over */
-.go-ico{font-size:68px;text-align:center;margin-bottom:8px}
-.go-title{font-family:'Bebas Neue';font-size:34px;letter-spacing:2px;text-align:center;color:var(--gold)}
-.go-score{font-size:13px;color:var(--text3);text-align:center;margin-top:4px}
-.go-rule{width:56px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:14px auto}
-.go-clown{font-size:11px;color:var(--text3);text-align:center;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px}
+.go-ico{font-size:64px;text-align:center;margin-bottom:8px}
+.go-title{font-family:'Bebas Neue';font-size:32px;letter-spacing:2px;text-align:center;color:var(--g1)}
+.go-score{font-size:12px;color:var(--t3);text-align:center;margin-top:3px}
+.go-rule{width:48px;height:1px;background:linear-gradient(90deg,transparent,var(--g1),transparent);margin:14px auto}
+.go-clown{font-size:10px;color:var(--t3);text-align:center;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px}
 
 /* Toast */
-#toast{position:fixed;bottom:92px;left:50%;transform:translateX(-50%) translateY(14px);background:rgba(13,10,18,.96);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:9px 18px;font-size:12px;color:var(--text);opacity:0;transition:all .22s;z-index:300;white-space:nowrap;max-width:88vw;text-align:center;pointer-events:none;box-shadow:0 4px 24px rgba(0,0,0,.6);backdrop-filter:blur(16px)}
+#toast{
+  position:fixed;bottom:88px;left:50%;
+  transform:translateX(-50%) translateY(12px);
+  background:rgba(10,8,16,.96);border:1px solid rgba(255,255,255,.12);
+  border-radius:20px;padding:8px 18px;font-size:11px;color:var(--t1);
+  opacity:0;transition:all .2s;z-index:300;
+  white-space:nowrap;max-width:88vw;text-align:center;
+  pointer-events:none;backdrop-filter:blur(20px);
+  box-shadow:0 4px 24px rgba(0,0,0,.5);
+}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-@media(max-width:380px){:root{--cw:64px;--ch:96px}.cf-word{font-size:84px}}
+/* Secondary button */
+.btn-ghost{
+  width:100%;padding:14px;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.1);border-radius:var(--r2);
+  color:var(--t2);font-size:13px;font-weight:600;
+  transition:all .18s;
+}
+.btn-ghost:active{border-color:var(--g1);color:var(--g1)}
+
+/* Utils */
+.divider{display:flex;align-items:center;gap:10px;color:var(--t3);font-size:10px;margin:2px 0}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.07)}
+
+@media(max-width:380px){
+  :root{--cw:64px;--ch:96px}
+  .lobby-logo{font-size:min(26vw,100px)}
+  .bc-score{font-size:52px}
+  .cf-big{font-size:min(26vw,100px)}
+}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
 
-<!-- THE WORLD — canvas is the environment, always behind everything -->
 <canvas id="world-canvas"></canvas>
 
 <!-- ══ LOADING ══ -->
 <div id="s-loading" class="screen">
-  <div class="load-center">
-    <div class="load-badge"><div class="load-ball">⚽</div></div>
-    <div class="load-ar">دبلة</div>
-    <div class="load-en">DOBLA</div>
-    <div class="load-rule"></div>
-    <div class="load-tag">كورة الشارع — كارت لكارت</div>
-    <div class="load-dots">
-      <div class="load-dot"></div><div class="load-dot"></div><div class="load-dot"></div>
-    </div>
+  <div class="loading-wrap">
+    <div class="loading-ball">⚽</div>
+    <div class="loading-title">دبلة</div>
+    <div class="loading-sub">DOBLA</div>
+    <div class="loading-dots"><div class="ld"></div><div class="ld"></div><div class="ld"></div></div>
   </div>
 </div>
 
 <!-- ══ LOBBY ══ -->
 <div id="s-lobby" class="screen hidden">
-  <div class="lobby-inner">
-    <div class="lobby-hero">
-      <div class="lh-badge">⚽ &nbsp; كورة الشارع</div>
-      <div class="logo-ar">دبلة</div>
-      <div class="logo-en">DOBLA</div>
-      <div class="logo-rule"></div>
-      <div class="logo-tag">كورة الشارع — كارت لكارت</div>
+  <!-- Hero takes the top 60% -->
+  <div class="lobby-hero">
+    <div class="lobby-logo">دبلة</div>
+    <div class="lobby-wordmark">DOBLA</div>
+    <div class="lobby-rule"></div>
+    <div class="lobby-tag">كورة الشارع — كارت لكارت</div>
+  </div>
+  <!-- Bottom sheet: minimal entry -->
+  <div class="lobby-sheet">
+    <div class="sheet-handle"></div>
+    <input id="inp-name" class="inp-name" type="text" placeholder="اسمك هنا..." maxlength="16" autocomplete="off">
+    <!-- Mode toggle right here, compact -->
+    <div class="mode-toggle">
+      <button class="mode-chip sel" id="mode-luck" onclick="selectMode('luck')">
+        <span class="mode-chip-icon">🎲</span>حظ
+      </button>
+      <button class="mode-chip" id="mode-strategy" onclick="selectMode('strategy')">
+        <span class="mode-chip-icon">🧠</span>استراتيجية
+      </button>
     </div>
-    <div class="glass-panel">
-      <div class="field-g">
-        <div class="field-label">اسمك</div>
-        <input id="inp-name" class="field-input" type="text" placeholder="ادخل اسمك" maxlength="16" autocomplete="off">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn-cta" onclick="doCreate()">العب الآن</button>
+      <button class="btn-link" onclick="toggleJoin()">انضم لغرفة موجودة</button>
+    </div>
+    <div class="join-expand" id="join-panel">
+      <div class="join-inner">
+        <input id="inp-code" class="inp-code" type="text" placeholder="ABCD" maxlength="4" autocomplete="off" oninput="this.value=this.value.toUpperCase()">
+        <button class="btn-cta" onclick="doJoin()">انضم</button>
       </div>
-      <div class="field-g" style="margin-top:14px">
-        <div class="field-label">وضع اللعب</div>
-        <div class="mode-row">
-          <button class="mode-btn sel" id="mode-luck" onclick="selectMode('luck')">
-            <span class="mode-icon">🎲</span>مود الحظ<div class="mode-sub">سريع — القرار هو التوقيت</div>
-          </button>
-          <button class="mode-btn" id="mode-strategy" onclick="selectMode('strategy')">
-            <span class="mode-icon">🧠</span>استراتيجية<div class="mode-sub">تكتيك — كومبو كامل</div>
-          </button>
-        </div>
-      </div>
-    </div>
-    <div class="btn-stack">
-      <button class="btn-gold" onclick="doCreate()">إنشاء غرفة جديدة</button>
-      <div class="divider">أو</div>
-      <button class="btn-ghost" onclick="toggleJoin()">انضم لغرفة موجودة</button>
-    </div>
-    <div class="join-panel hidden" id="join-panel">
-      <input id="inp-code" class="code-inp" type="text" placeholder="ABCD" maxlength="4" autocomplete="off" oninput="this.value=this.value.toUpperCase()">
-      <button class="btn-gold" onclick="doJoin()">انضم</button>
     </div>
   </div>
 </div>
 
 <!-- ══ WAITING ROOM ══ -->
 <div id="s-room" class="screen hidden">
-  <div class="room-code-box">
-    <div class="rcb-label">كود الغرفة</div>
-    <div class="rcb-code" id="room-code-display">----</div>
-    <div class="rcb-hint">شارك الكود مع صاحبك</div>
-    <button class="copy-btn" onclick="copyCode()">📋 نسخ الكود</button>
-  </div>
-  <div class="vs-row">
-    <div class="pslot active" id="pc-p1"><div class="psdot on" id="dot-p1"></div><div class="psname" id="pname-p1">---</div></div>
-    <div class="vs-sep">VS</div>
-    <div class="pslot" id="pc-p2"><div class="psdot" id="dot-p2"></div><div class="psname wait" id="pname-p2">في انتظار المنافس...</div></div>
-  </div>
-  <div class="room-st" id="room-status">في انتظار اللاعب الثاني...</div>
-  <div class="room-acts">
-    <button class="btn-gold hidden" id="btn-start" onclick="doStart()">🏁 ابدأ الماتش</button>
-    <button class="btn-ghost" onclick="doLeave()">↩ خروج</button>
+  <div class="room-arena">
+    <div class="room-code-display">
+      <div class="rcd-label">كود الغرفة</div>
+      <div class="rcd-code" id="room-code-display">----</div>
+      <div class="rcd-hint">شارك مع صاحبك</div>
+      <button class="rcd-copy" onclick="copyCode()">📋 نسخ</button>
+    </div>
+
+    <!-- THE DRAMATIC VS PANEL -->
+    <div class="vs-arena">
+      <div class="vs-players">
+        <div class="vs-player">
+          <div class="vsp-avatar ready" id="ava-p1">👤</div>
+          <div class="vsp-name" id="pname-p1">---</div>
+        </div>
+        <div class="vs-divider">
+          <div class="vs-word">VS</div>
+          <div class="vs-dots">
+            <div class="vs-dot"></div><div class="vs-dot"></div><div class="vs-dot"></div>
+          </div>
+        </div>
+        <div class="vs-player">
+          <div class="vsp-avatar" id="ava-p2">⏳</div>
+          <div class="vsp-name waiting" id="pname-p2">في الانتظار...</div>
+        </div>
+      </div>
+      <div class="vs-status" id="room-status">في انتظار اللاعب الثاني...</div>
+    </div>
+
+    <!-- Mode selection in room -->
+    <div style="width:100%">
+      <div class="rcd-label" style="margin-bottom:8px">وضع اللعب</div>
+      <div class="room-mode-row">
+        <button class="rmode-btn sel" id="rmode-luck" onclick="selectMode('luck')">
+          <span class="rmode-icon">🎲</span>حظ
+        </button>
+        <button class="rmode-btn" id="rmode-strategy" onclick="selectMode('strategy')">
+          <span class="rmode-icon">🧠</span>استراتيجية
+        </button>
+      </div>
+    </div>
+
+    <div class="room-actions">
+      <button class="btn-cta hidden" id="btn-start" onclick="doStart()">🏁 ابدأ الماتش</button>
+      <button class="btn-ghost" onclick="doLeave()">↩ خروج</button>
+    </div>
   </div>
 </div>
 
 <!-- ══ GAME ══ -->
 <div id="s-game" class="screen hidden">
-  <div class="scorebar" id="scorebar">
-    <div class="sb-inner">
-      <div class="sb-side mine">
-        <div class="sb-name mine" id="sb-myname">أنت</div>
-        <div class="sb-score mine" id="sb-myscore">0</div>
-        <div class="notifs" id="sb-mynotifs"></div>
+
+  <!-- Broadcast bar -->
+  <div class="broadcast" id="scorebar">
+    <div class="bc-inner">
+      <div class="bc-player me">
+        <div class="bc-name me" id="sb-myname">أنت</div>
+        <div class="bc-score mine" id="sb-myscore">0</div>
+        <div class="bc-notifs" id="sb-mynotifs"></div>
       </div>
-      <div class="sb-mid">
-        <div class="sb-colon">:</div>
-        <div class="mode-pill" id="mode-label">حظ</div>
+      <div class="bc-mid">
+        <div class="bc-colon">:</div>
+        <div class="bc-mode" id="mode-label">حظ</div>
       </div>
-      <div class="sb-side">
-        <div class="sb-name" id="sb-oppname">منافس</div>
-        <div class="sb-score" id="sb-oppscore">0</div>
-        <div class="notifs" id="sb-oppnotifs"></div>
+      <div class="bc-player">
+        <div class="bc-name" id="sb-oppname">منافس</div>
+        <div class="bc-score" id="sb-oppscore">0</div>
+        <div class="bc-notifs" id="sb-oppnotifs"></div>
       </div>
     </div>
   </div>
-  <div class="possbar"><span id="poss-label">الكرة لوز ⚽</span><span class="poss-hi" id="poss-name"></span></div>
-  <div class="opp-zone" id="opp-zone"></div>
-  <div class="deck-row">
-    <div class="discard-wrap">
-      <div class="discard-top" id="discard-top">مرمية</div>
-      <div class="deck-lbl">مرمية</div>
+
+  <!-- Battle zone: dominant center -->
+  <div class="battle-zone">
+
+    <!-- Opponent -->
+    <div class="opp-area">
+      <div class="opp-cards" id="opp-zone"></div>
+      <div class="opp-name" id="opp-name-lbl">منافسك</div>
     </div>
-    <div class="deck-center">
-      <div class="deck-center-lbl">الدور</div>
-      <div class="turn-ind" id="turn-ind">...</div>
-    </div>
-    <div class="deck-wrap">
-      <div class="deck-stack" id="deck-stack">
-        <div class="cback"></div>
-        <div class="cback"></div>
-        <div class="cback"></div>
-        <div class="deck-count" id="deck-count">?</div>
+
+    <!-- Deck / discard strip -->
+    <div class="deck-strip">
+      <div class="ds-pile">
+        <div style="position:relative;width:38px;height:55px">
+          <div class="ds-discard" id="discard-top">—</div>
+        </div>
+        <div class="ds-label">مرمية</div>
       </div>
-      <div class="deck-lbl">الديك</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+        <div class="poss-strip"><span id="poss-label">⚽</span> <span class="poss-hi" id="poss-name"></span></div>
+        <div class="turn-pill" id="turn-ind">...</div>
+      </div>
+      <div class="ds-pile">
+        <div class="ds-stack" id="deck-stack">
+          <div class="ds-card"></div>
+          <div class="ds-card"></div>
+          <div class="ds-card"></div>
+          <div class="ds-count" id="deck-count">?</div>
+        </div>
+        <div class="ds-label">الديك</div>
+      </div>
     </div>
+
+    <!-- Clash area -->
+    <div class="clash-center">
+      <div class="clash-slots">
+        <div class="clash-slot" id="sl-opp"><span>منافسك</span></div>
+        <div class="clash-vs-sep">VS</div>
+        <div class="clash-slot" id="sl-me"><span>أنت</span></div>
+      </div>
+      <div class="battle-status" id="status-msg">...</div>
+      <div class="battle-event" id="event-msg"></div>
+    </div>
+
   </div>
-  <div class="strategy-bar" id="strategy-bar">
-    <span class="draw-label">سحب:</span>
+
+  <!-- Strategy bar -->
+  <div class="strat-bar" id="strategy-bar">
+    <span class="draw-lbl">سحب:</span>
     <button class="draw-btn" id="draw-1" onclick="strategyPickDraw(1)">١</button>
     <button class="draw-btn" id="draw-2" onclick="strategyPickDraw(2)">٢</button>
     <button class="draw-btn" id="draw-3" onclick="strategyPickDraw(3)">٣</button>
-    <span class="draw-label" id="draw-hint">اختار كم تسحب</span>
+    <span class="draw-lbl" id="draw-hint">اختار كم تسحب</span>
   </div>
-  <div class="play-zone">
-    <div class="pitch-table"></div>
-    <div class="pen-arc"></div>
-    <div class="pen-arc-bot"></div>
-    <div class="clash-row">
-      <div class="play-slot" id="sl-opp"><span>منافسك</span></div>
-      <div class="clash-sep">VS</div>
-      <div class="play-slot" id="sl-me"><span>أنت</span></div>
-    </div>
-    <div class="status-msg" id="status-msg">...</div>
-    <div class="event-msg" id="event-msg"></div>
-  </div>
-  <div class="abar">
+
+  <!-- Action -->
+  <div class="action-row">
     <button class="btn-play" id="btn-play" onclick="playSelected()">العب الكارت</button>
-    <button class="btn-burn" id="btn-burn" onclick="burnSelected()">🔥 احرق كارت</button>
+    <button class="btn-burn" id="btn-burn" onclick="burnSelected()">🔥 احرق</button>
   </div>
-  <div class="hand-wrap"><div class="hand" id="my-hand"></div></div>
+
+  <!-- Hand -->
+  <div class="hand-zone"><div class="hand" id="my-hand"></div></div>
+
 </div>
 
-<!-- ══ CINEMATIC FLASHES ══ -->
-<div class="cf-goal" id="cf-goal">
-  <div class="cf-goal-bg"></div>
-  <div class="cf-txt"><span class="cf-word" id="cf-word">GOAL!</span><span class="cf-sub" id="cf-sub">سجّلت ⚽</span></div>
+<!-- ══ FLASHES ══ -->
+<div class="cf" id="cf-goal">
+  <div class="cf-bg"></div>
+  <div class="cf-txt"><span class="cf-big" id="cf-word">GOAL!</span><span class="cf-sm" id="cf-sub">سجّلت ⚽</span></div>
 </div>
-<div class="cf-og" id="cf-og">
-  <div class="cf-og-bg"></div>
-  <div class="cf-txt"><span class="cf-word">أون جول!</span><span class="cf-sub" id="cf-og-sub">الهدف لصالحك 😱</span></div>
+<div class="cf" id="cf-og">
+  <div class="cf-bg"></div>
+  <div class="cf-txt"><span class="cf-big">أون جول!</span><span class="cf-sm" id="cf-og-sub">الهدف لصالحك 😱</span></div>
 </div>
-<div class="cf-var" id="cf-var">
-  <div class="cf-var-bg"></div>
-  <div class="cf-txt"><span class="cf-word">VAR</span><span class="cf-sub" id="cf-var-sub"></span></div>
+<div class="cf" id="cf-var">
+  <div class="cf-bg"></div>
+  <div class="cf-txt"><span class="cf-big">VAR</span><span class="cf-sm" id="cf-var-sub"></span></div>
 </div>
 
 <!-- ══ OVERLAYS ══ -->
@@ -886,7 +983,7 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none}
     <div class="rs-hand" id="reshuffle-cards"></div>
     <div class="rs-count" id="reshuffle-count">اختار 2 كروت</div>
     <div class="ov-acts">
-      <button class="btn-gold" id="btn-reshuffle-confirm" onclick="confirmReshuffle()" disabled>بدّل</button>
+      <button class="btn-cta" id="btn-reshuffle-confirm" onclick="confirmReshuffle()" disabled>بدّل</button>
       <button class="btn-ghost" onclick="closeOverlay('ov-reshuffle')">إلغاء</button>
     </div>
   </div>
@@ -899,7 +996,7 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none}
     <div class="go-rule"></div>
     <div class="go-clown hidden" id="go-clown"></div>
     <div class="ov-acts">
-      <button class="btn-gold" onclick="doRestart()">ماتش تاني</button>
+      <button class="btn-cta" onclick="doRestart()">ماتش تاني</button>
       <button class="btn-ghost" onclick="doLeave()">↩ خروج</button>
     </div>
   </div>
@@ -2284,7 +2381,7 @@ function syncUI(prev){
   // ── WAITING ROOM ──
   if(phase==='waiting'){
     showScreen('room');
-    WorldCanvas.setState('lobby');
+    if(typeof WorldCanvas!=='undefined')WorldCanvas.setState('lobby');
     if(p2?.name){
       document.getElementById('pname-p2').textContent=p2.name;
       document.getElementById('pname-p2').classList.remove('waiting');
@@ -2310,7 +2407,7 @@ function syncUI(prev){
 
   // ── ACTIVE GAME ──
   showScreen('game');
-  WorldCanvas.setState('game');
+  if(typeof WorldCanvas!=='undefined')WorldCanvas.setState('game');
   renderGameUI();
 
   // Handle new events
@@ -2390,11 +2487,11 @@ function renderGameUI(){
     const dp=gs.discardPile||[];
     const top=dp[dp.length-1];
     if(top){
-      discardEl.className='discard-top has-card';
+      discardEl.className='ds-discard has';
       discardEl.innerHTML=cardIcon(top.id);
     }else{
-      discardEl.className='discard-top';
-      discardEl.innerHTML='مرمية';
+      discardEl.className='ds-discard';
+      discardEl.innerHTML='—';
     }
   }
 
@@ -2402,7 +2499,7 @@ function renderGameUI(){
   const turnEl=document.getElementById('turn-ind');
   if(turnEl){
     const myTurn=isMyAttack()||isMyDefend()||isMyPenalty();
-    turnEl.className='turn-indicator'+(myTurn?' my-turn':'');
+    turnEl.className='turn-pill'+(myTurn?' mine':'');
     if(phase==='attack'){turnEl.textContent=isMyAttack()?'⚔️ هاجم':'⏳ هجوم';}
     else if(phase==='defend'){turnEl.textContent=isMyDefend()?'🛡️ دافع':'⏳ دفاع';}
     else if(phase==='penalty_pending'){turnEl.textContent=isMyPenalty()?'🥅 بنلتي':'⚽ بنلتي';}
@@ -2441,13 +2538,13 @@ function renderSlot(id,atkCard,defCard){
     el.innerHTML=`<span>${id==='sl-me'?'أنت':'منافسك'}</span>`;
     return;
   }
-  el.className='play-slot filled';
+  el.className='clash-slot filled';
   const tc=typeClass(card.type);
   const hc=holoClass(card.id);
   el.innerHTML=`<div class="slot-card ${tc} ${hc}">
-    <div class="card-stripe"></div>
-    <div class="slot-ico">${cardIcon(card.id)}</div>
-    <div class="slot-name">${card.ar}</div>
+    <div class="c-stripe"></div>
+    <div class="c-icon slot-card .c-icon">${cardIcon(card.id)}</div>
+    <div class="c-name">${card.ar}</div>
   </div>`;
 }
 
@@ -2462,14 +2559,16 @@ function renderHand(hand){
     const tc=typeClass(card.type);
     const hc=holoClass(card.id);
     const div=document.createElement('div');
-    div.className=['card',tc,hc,!ok?'unplayable':'',sel?'selected':''].filter(Boolean).join(' ');
-    div.innerHTML=`<div class="card-stripe"></div>
-      <div class="card-body">
-        <div class="card-type">${typeLabel(card.type)}</div>
-        <div class="card-ico">${cardIcon(card.id)}</div>
-        <div class="card-name">${card.ar}</div>
-        <div class="card-sub">${card.en}</div>
-      </div>${p?.interrupt?'<div class="chain-badge">⛓</div>':''}`;
+    div.className=['card',tc,hc,!ok?'dead':'',sel?'sel':''].filter(Boolean).join(' ');
+    div.innerHTML=`
+      <div class="c-stripe"></div>
+      <div class="c-type">${typeLabel(card.type)}</div>
+      <div class="c-icon">${cardIcon(card.id)}</div>
+      <div class="c-name">${card.ar}</div>
+      <div class="c-en">${card.en}</div>
+      <div class="c-mark">◆</div>
+      ${p?.interrupt?'<div class="c-chain">⛓</div>':''}
+    `;
     div.addEventListener('click',()=>{
       if(ok)selectCard(i);
       else if(p?.reason)toast(p.reason);
@@ -3056,19 +3155,17 @@ function showGoalFlash(isMine){
   if(!el)return;
   document.getElementById('cf-word').textContent=isMine?'GOAL!':'هدف عليك';
   document.getElementById('cf-sub').textContent=isMine?'سجّلت ⚽':'خصمك سجّل';
-  el.className='cf-goal show';
-  setTimeout(()=>el.className='cf-goal',1700);
-  // World canvas reacts
+  el.className='cf show';
+  setTimeout(()=>el.className='cf',1800);
   worldReact('goal');
-  // Pop score
   const scoreEl=document.getElementById(isMine?'sb-myscore':'sb-oppscore');
-  if(scoreEl){scoreEl.classList.add('pop');setTimeout(()=>scoreEl.classList.remove('pop'),450);}
+  if(scoreEl){scoreEl.classList.add('pop');setTimeout(()=>scoreEl.classList.remove('pop'),500);}
 }
 
 function showOGFlash(){
   const el=document.getElementById('cf-og');if(!el)return;
-  el.className='cf-og show';
-  setTimeout(()=>el.className='cf-og',2100);
+  el.className='cf show';
+  setTimeout(()=>el.className='cf',2100);
   worldReact('owngoal');
 }
 
@@ -3076,13 +3173,14 @@ function showVARFlash(ev){
   const el=document.getElementById('cf-var');if(!el)return;
   const sub=document.getElementById('cf-var-sub');
   if(sub)sub.textContent=ev.goalStands?'الهدف اتأكد ✅':'الهدف اتلغى ❌';
-  el.className='cf-var show';
-  setTimeout(()=>el.className='cf-var',1900);
+  el.className='cf show';
+  setTimeout(()=>el.className='cf',2000);
   worldReact('var');
 }
 
 function triggerLegendMoment(){
   document.getElementById('scorebar')?.classList.add('legend');
+  WorldCanvas?.setState('goal');
   document.getElementById('g-rays')?.classList.add('goal-rays');
 }
 
@@ -3099,6 +3197,12 @@ function holoClass(id){
   if(id==='endmatch')return'legend';
   if(['supershot','owngoal','var','chain','offside'].includes(id))return'holo';
   return'';
+}
+function worldReact(evt){
+  if(typeof WorldCanvas==='undefined')return;
+  WorldCanvas.setState(evt);
+  const dur=evt==='goal'?2600:evt==='owngoal'?2600:2100;
+  setTimeout(()=>WorldCanvas.setState('game'),dur);
 }
 // World canvas reactions
 function worldReact(evt){
@@ -3119,13 +3223,12 @@ function cardIcon(id){return CARD_ICONS[id]||'🃏';}
 
 // ── BOOT ──
 window.addEventListener('DOMContentLoaded',()=>{
-  // Init the world canvas — it runs forever as the background
   WorldCanvas.init();
   WorldCanvas.setState('loading');
   setTimeout(()=>{
     WorldCanvas.setState('lobby');
     showScreen('lobby');
-  },1200);
+  },1300);
 });
 </script>
 </body>
