@@ -3300,7 +3300,7 @@ function cardIcon(id){return CARD_ICONS[id]||'🃏';}
 // Default: B (الكورة / The Pitch)
 // ══════════════════════════════════════════════
 const TunnelSystem = (function(){
-  let canvas, ctx, raf, currentMode = 'b', t = 0, startTime = 0;
+  let canvas, ctx, raf, currentMode = 'b', startTime = 0;
 
   function init(){
     canvas = document.getElementById('tunnel-canvas');
@@ -3315,33 +3315,33 @@ const TunnelSystem = (function(){
     canvas.height = canvas.offsetHeight;
   }
 
+  // Single shared frame loop — always reads currentMode from closure
+  function frame(now){
+    const t = (now - startTime) / 1000;
+    const progress = Math.min(1, t / 2.8);
+    if(currentMode === 'a') drawStreetTunnel(progress, t);
+    else if(currentMode === 'b') drawPitchTunnel(progress, t);
+    else if(currentMode === 'c') drawCafeTunnel(progress, t);
+    raf = requestAnimationFrame(frame);
+  }
+
   function start(mode){
     if(!canvas){ init(); }
     currentMode = mode || 'b';
     stop();
-    t = 0;
     startTime = performance.now();
     resize();
-    function frame(now){
-      t = (now - startTime) / 1000;
-      const progress = Math.min(1, t / 2.8);
-      if(currentMode === 'a') drawStreetTunnel(progress, t);
-      else if(currentMode === 'b') drawPitchTunnel(progress, t);
-      else if(currentMode === 'c') drawCafeTunnel(progress, t);
-      raf = requestAnimationFrame(frame);
-    }
     raf = requestAnimationFrame(frame);
   }
 
   function stop(){
     if(raf){ cancelAnimationFrame(raf); raf = null; }
-    if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if(canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
 
   function setMode(mode){
     currentMode = mode;
-    startTime = performance.now();
-    t = 0;
+    startTime = performance.now(); // restart animation progress for new mode
   }
 
   // ── DIRECTION A: الشارع ──
