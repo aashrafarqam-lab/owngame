@@ -460,6 +460,1230 @@ body{font-family:'Cairo',sans-serif;color:var(--text);overscroll-behavior:none}
 ══════════════════════════════════════════════════════ -->
 <script>
 // ═══════════════════════════════════════════════════════════════
+// OWN GOAL — Game Engine v2.0
+// Fixes applied per OwnGoal_Complete_Rules_Prompt.md:
+// Fix 1: Offside counters pass, shot, supershot (NOT dribble)
+// Fix 2: Own Goal counters Shot Goal only — scores for DEFENDER
+// Fix 3: VAR on Penalty — only foul-committer can play it
+// Fix 4: Chain is interrupt card — played by non-possessor only
+// Fix 5: Turnover — auto possession swap if attacker has no attacks
+// Fix 7: Strategy Mode enforces "play exactly what you drew"
+// Fix 8: Attack chain continuation — failed non-shot keeps attacker
+// ═══════════════════════════════════════════════════════════════
+
+'use strict';
+
+// ─────────────────────────────────────────────
+// CARD DEFINITIONS
+// ─────────────────────────────────────────────
+const CARDS = {
+  // ── ATTACK ──
+  pass:       { id:'pass',       ar:'باص',           en:'Pass',         type:'attack',  qty:15, desc:'ابدأ الهجوم أو استمر فيه' },
+  dribble:    { id:'dribble',    ar:'دريبل',         en:'Dribble',      type:'attack',  qty:5,  desc:'تقدم بالكرة' },
+  shot:       { id:'shot',       ar:'شوطة',          en:'Shot Goal',    type:'attack',  qty:5,  desc:'سدد على المرمى' },
+  supershot:  { id:'supershot',  ar:'سوبر شوت',      en:'Super Shot',   type:'attack',  qty:2,  desc:'تسديدة لا يوقفها إلا Block Save' },
+  assist:     { id:'assist',     ar:'اسيست',         en:'Assist',       type:'attack',  qty:5,  twoVtwoOnly:true, desc:'2v2 بس — مرر للزميل' },
+  goal:       { id:'goal',       ar:'جول',           en:'Goal',         type:'attack',  qty:5,  twoVtwoOnly:true, desc:'2v2 بس — سجل بعد أسيست' },
+  chain:      { id:'chain',      ar:'استخلاص',       en:'Chain',        type:'special', qty:2,  interrupt:true, desc:'اسرق الاستحواذ في أي وقت — بس لو مش معاك الكرة' },
+  endmatch:   { id:'endmatch',   ar:'نهاية الماتش',  en:'End Match',    type:'special', qty:1,  desc:'خلص الماتش دلوقتي — كارت الرخامة' },
+
+  // ── DEFENSE ──
+  intercept:  { id:'intercept',  ar:'اعتراض',        en:'Interception', type:'defense', qty:15, counters:['pass','assist'],           possession:'steal',  desc:'اقطع الباص وخد الكرة' },
+  tackle:     { id:'tackle',     ar:'تدخل',          en:'Tackle',       type:'defense', qty:5,  counters:['dribble'],                  possession:'steal',  desc:'اوقف الدريبل وخد الكرة' },
+  goalkeeper: { id:'goalkeeper', ar:'جول كيبر',      en:'Goal Keeper',  type:'defense', qty:5,  counters:['shot'],                     possession:'neutral',desc:'صد الشوطة — الكرة تبقى لوز. لا يصد Super Shot' },
+  blocksave:  { id:'blocksave',  ar:'بلوك سيف',      en:'Block Save',   type:'defense', qty:2,  counters:['supershot'],                possession:'neutral',desc:'الوحيد اللي يوقف السوبر شوت' },
+  blockshot:  { id:'blockshot',  ar:'بلوك شوت',      en:'Block Shot',   type:'defense', qty:3,  counters:['shot'],                     possession:'loose',  desc:'حجب الشوطة — الكرة تضيع' },
+  block:      { id:'block',      ar:'بلوك',          en:'Block',        type:'defense', qty:4,  counters:['pass','dribble'],           possession:'neutral',luckOnly:true, desc:'اوقف الباص أو الدريبل (Luck Mode بس)' },
+  foul:       { id:'foul',       ar:'فاول',          en:'Foul',         type:'defense', qty:4,  counters:['pass','dribble','shot','supershot','assist','goal'], possession:'attacker', desc:'اوقف أي هجوم — بس الاستحواذ للمهاجم' },
+  // FIX 1: Offside counters pass, shot, supershot — NOT dribble
+  offside:    { id:'offside',    ar:'تسلل',          en:'Offside',      type:'defense', qty:1,  counters:['pass','shot','supershot'],  possession:'steal',  desc:'فخ التسلل — خد الكرة (يلغي باص أو شوطة)' },
+  // FIX 2: Own Goal is a defense card that counters Shot Goal only — scores for DEFENDER
+  owngoal:    { id:'owngoal',    ar:'أون جول',       en:'Own Goal',     type:'defense', qty:1,  counters:['shot'],                     possession:'owngoal', desc:'رد على الشوطة — الهدف يتسجل لصالحك أنت!' },
+
+  // ── SPECIAL ──
+  var:        { id:'var',        ar:'VAR',            en:'VAR',          type:'special', qty:2,  desc:'راجع آخر حدث — إنت اللي تختار وش أو ضهر' },
+  reshuffle:  { id:'reshuffle',  ar:'ريشافل',        en:'Reshuffle',    type:'special', qty:4,  desc:'بدل كروت من الديك (أو من زميلك في 2v2)' },
+
+  // ── EARNED (never in deck) ──
+  penalty:    { id:'penalty',    ar:'بنلتي',         en:'Penalty',      type:'special', qty:0,  earned:true, desc:'هدف تلقائي — بس VAR يوقفه' },
+};
+
+// ─────────────────────────────────────────────
+// COUNTER TABLE
+// FIX 1: offside — pass/shot/supershot only
+// FIX 2: owngoal — shot only (scores for defender, not attacker)
+// ─────────────────────────────────────────────
+const COUNTER_TABLE = {
+  pass:      ['intercept', 'block', 'foul', 'offside'],
+  dribble:   ['tackle',    'block', 'foul'],             // FIX 1: offside removed from dribble
+  shot:      ['goalkeeper','blockshot','foul','offside','owngoal'], // FIX 2: owngoal added
+  supershot: ['blocksave', 'foul', 'offside'],           // FIX 1: offside added
+  assist:    ['intercept', 'foul'],
+  goal:      ['goalkeeper','blockshot','foul'],
+  penalty:   [],                                         // FIX 3: VAR handled separately, not in counter table
+};
+
+// ─────────────────────────────────────────────
+// POSSESSION RESULT after successful defense
+// FIX 2: owngoal → special 'owngoal' result (defender scores)
+// ─────────────────────────────────────────────
+const POSSESSION_RESULT = {
+  intercept:  'steal',
+  tackle:     'steal',
+  goalkeeper: 'neutral',
+  blocksave:  'neutral',
+  blockshot:  'loose',
+  block:      'neutral',
+  foul:       'attacker',
+  offside:    'steal',
+  owngoal:    'owngoal',   // FIX 2: special — defender scores + gets possession
+};
+
+// ─────────────────────────────────────────────
+// DECK BUILDER
+// ─────────────────────────────────────────────
+function buildDeck(mode, gameMode) {
+  const deck = [];
+  let uid = 0;
+  const is2v2 = gameMode === '2v2';
+  for (const [key, def] of Object.entries(CARDS)) {
+    if (def.earned) continue;
+    if (def.luckOnly && mode === 'strategy') continue;
+    if (def.twoVtwoOnly && !is2v2) continue;   // assist/goal removed in 1v1
+    if (def.qty === 0) continue;
+    for (let i = 0; i < def.qty; i++) {
+      deck.push({ ...def, uid: `${key}_${uid++}` });
+    }
+  }
+  return shuffle(deck);
+}
+
+// ─────────────────────────────────────────────
+// HAND DEALING — fixed 4 cards, guarantee 1 attack
+// ─────────────────────────────────────────────
+function dealHand(deck, size) {
+  size = size || 4;
+  const remaining = [...deck];
+  const hand = [];
+  const attackIdx = remaining.findIndex(c => c.type === 'attack');
+  if (attackIdx !== -1) hand.push(remaining.splice(attackIdx, 1)[0]);
+  while (hand.length < size && remaining.length > 0) {
+    const idx = Math.floor(Math.random() * remaining.length);
+    hand.push(remaining.splice(idx, 1)[0]);
+  }
+  return { hand: shuffle(hand), deck: remaining };
+}
+
+// ─────────────────────────────────────────────
+// INITIAL GAME STATE
+// ─────────────────────────────────────────────
+function createInitialState(config) {
+  const { mode, gameMode, p1Name, p2Name, winGoals = 6 } = config;
+  const deck = buildDeck(mode, gameMode);
+  const d1 = dealHand(deck, 4);
+  const d2 = dealHand(d1.deck, 4);
+  const firstAttacker = Math.random() < 0.5 ? 'p1' : 'p2';
+  return {
+    mode, gameMode, winGoals,
+    phase: 'attack',
+    players: {
+      p1: { name: p1Name, goals: 0, hand: d1.hand, fouls: 0, yellowCard: false, redCard: false, suspended: 0 },
+      p2: { name: p2Name, goals: 0, hand: d2.hand, fouls: 0, yellowCard: false, redCard: false, suspended: 0 },
+    },
+    deck: d2.deck,
+    discardPile: [],
+    ballState: 'loose',
+    possession: null,
+    attacker: firstAttacker,
+    defender: firstAttacker === 'p1' ? 'p2' : 'p1',
+    // FIX 8: track active attack chain phase
+    attackChain: [],            // cards played this attack turn
+    chainPhase: 'idle',         // 'idle' | 'active' | 'shot_phase'
+    // Strategy Mode
+    strategyDrawCount: null,
+    strategyCardsPlayed: 0,
+    // FIX 3: track who committed the foul for VAR on penalty
+    lastFoulCommitter: null,
+    pendingPenaltyFor: null,
+    pendingVARFor: null,
+    pendingVAREvent: null,
+    varWindowOpen: false,
+    varWindowEvent: null,
+    lastAttackCard: null,
+    lastDefenseCard: null,
+    lastEvent: null,
+    winner: null,
+    turnCount: 0,
+  };
+}
+
+// ─────────────────────────────────────────────
+// DRAW / DISCARD HELPERS
+// ─────────────────────────────────────────────
+function drawCard(state, playerId) {
+  let dk = [...state.deck];
+  let dp = [...state.discardPile];
+  if (dk.length === 0) {
+    if (dp.length === 0) return state;
+    dk = shuffle(dp); dp = [];
+  }
+  const card = dk.shift();
+  const player = { ...state.players[playerId] };
+  player.hand = [...player.hand, card];
+  return { ...state, deck: dk, discardPile: dp, players: { ...state.players, [playerId]: player } };
+}
+
+function drawCards(state, playerId, count) {
+  let s = state;
+  for (let i = 0; i < count; i++) s = drawCard(s, playerId);
+  return s;
+}
+
+function discardFromHand(state, playerId, cardUid) {
+  const player = { ...state.players[playerId] };
+  const idx = player.hand.findIndex(c => c.uid === cardUid);
+  if (idx === -1) return state;
+  const [card] = player.hand.splice(idx, 1);
+  return { ...state, players: { ...state.players, [playerId]: player }, discardPile: [...state.discardPile, card] };
+}
+
+// ─────────────────────────────────────────────
+// FIX 5: TURNOVER CHECK
+// If attacker has no attack cards → automatic turnover
+// ─────────────────────────────────────────────
+function checkTurnover(state) {
+  const attacker = state.players[state.attacker];
+  const hasAttack = (attacker.hand || []).some(c => c.type === 'attack');
+  if (!hasAttack && state.phase === 'attack') {
+    return {
+      ...advanceTurn(state, 'defender'), // possession to other player
+      lastEvent: { type: 'turnover', player: state.attacker, detail: 'مفيش كروت هجوم — Turnover تلقائي' },
+    };
+  }
+  return null; // no turnover
+}
+
+// ─────────────────────────────────────────────
+// VALID PLAYS
+// FIX 2: Own Goal playable as defense against shot
+// FIX 4: Chain playable only by non-possessor at any time
+// FIX 3: VAR on penalty only for foul-committer
+// ─────────────────────────────────────────────
+function getPlayableCards(state, playerId) {
+  const player = state.players[playerId];
+  const hand = player.hand || [];
+  const isAttacker = state.attacker === playerId;
+  const isDefender = state.defender === playerId;
+  const phase = state.phase;
+  const hasPossession = state.attacker === playerId;
+
+  return hand.map(card => {
+    if ((player.suspended || 0) > 0) return { card, playable: false, reason: 'أنت موقوف' };
+
+    // FIX 4: Chain — interrupt card, playable ONLY by non-possessor at any time during attack/defend
+    if (card.id === 'chain') {
+      if (hasPossession) return { card, playable: false, reason: 'Chain بس لو مش معاك الكرة' };
+      if (phase === 'attack' || phase === 'defend') return { card, playable: true, interrupt: true };
+      return { card, playable: false };
+    }
+
+    // ── ATTACK TURN ──
+    if (phase === 'attack' && isAttacker) {
+      if (card.type === 'attack') return { card, playable: true };
+      if (card.id === 'endmatch') return { card, playable: true };
+      if (card.id === 'reshuffle') return { card, playable: true };
+      if (card.id === 'var') return { card, playable: false, reason: 'VAR بس بعد حدث' };
+      // FIX 2: owngoal is now a defense card, not playable on attack
+      return { card, playable: false, reason: 'دورك تهاجم' };
+    }
+
+    // ── DEFEND TURN ──
+    if (phase === 'defend' && isDefender) {
+      if (card.id === 'block' && state.mode !== 'luck') return { card, playable: false, reason: 'Block بس في Luck Mode' };
+      // FIX 2: owngoal now valid defense (against shot only — but let player play it, engine resolves)
+      if (card.type === 'defense') return { card, playable: true };
+      if (card.id === 'reshuffle') return { card, playable: true };
+      if (card.id === 'var') return { card, playable: false, reason: 'VAR بس بعد حدث' };
+      // Any attack card can be burned as mandatory defense attempt
+      if (card.type === 'attack') return { card, playable: true, burnOnly: true, reason: 'هتتحرق كمحاولة دفاع' };
+      return { card, playable: false };
+    }
+
+    // ── PENALTY PENDING ──
+    // FIX 3: only the foul-committer can play VAR on penalty
+    if (phase === 'penalty_pending') {
+      if (isDefender) {
+        // FIX 3: VAR playable on penalty ONLY for the foul committer (who is the defender here)
+        if (card.id === 'var') return { card, playable: true, reason: 'اعترض على البنلتي بـ VAR' };
+        // No other card stops penalty — but must burn one (mandatory)
+        return { card, playable: true, burnOnly: true, reason: 'البنلتي هدف مضمون — حرق إجباري' };
+      }
+      return { card, playable: false };
+    }
+
+    return { card, playable: false };
+  });
+}
+
+// ─────────────────────────────────────────────
+// CORE DUEL RESOLUTION
+// FIX 2: Own Goal scores for DEFENDER
+// FIX 8: Returns chainContinues flag for non-shot failures
+// ─────────────────────────────────────────────
+function resolveDuel(attackCard, defenseCard, state) {
+  const atk = attackCard.id;
+  const def = defenseCard.id;
+  const isShot = ['shot', 'supershot', 'goal'].includes(atk);
+
+  // FOUL — universal stop, possession to attacker (or penalty if shot phase)
+  if (def === 'foul') return resolveFoul(attackCard, state);
+
+  const counters = COUNTER_TABLE[atk] || [];
+  const isCorrectCounter = counters.includes(def);
+
+  if (!isCorrectCounter) {
+    // Wrong counter — attack succeeds
+    // FIX 8: if not shot phase, attack CONTINUES (chain continues), attacker keeps possession
+    return {
+      success: 'attack',
+      possession: 'attacker',
+      chainContinues: !isShot,   // FIX 8: chain keeps going if not a shot
+      goalScored: isShot,        // goal if it was a shot
+      event: isShot ? 'goal' : 'attack_passed_through',
+      detail: `${attackCard.ar} نجح — ${defenseCard.ar} مش الرد الصح`,
+    };
+  }
+
+  // FIX 2: OWN GOAL — correct counter against shot → DEFENDER scores
+  if (def === 'owngoal' && isShot) {
+    return {
+      success: 'defense',
+      possession: 'defender',
+      ownGoalScored: true,       // FIX 2: defender scores, not attacker
+      event: 'own_goal_scored',
+      detail: `أون جول! الهدف اتسجل لصالح المدافع`,
+    };
+  }
+
+  // Correct counter played — defense succeeds
+  const possResult = POSSESSION_RESULT[def];
+  if (possResult === 'steal') {
+    return { success: 'defense', possession: 'defender', event: 'defense_stole', chainContinues: false, detail: `${defenseCard.ar} قطع ${attackCard.ar}` };
+  }
+  return { success: 'defense', possession: possResult, event: 'defense_neutral', chainContinues: false, detail: `${defenseCard.ar} صد ${attackCard.ar}` };
+}
+
+// ─────────────────────────────────────────────
+// FOUL RESOLUTION
+// ─────────────────────────────────────────────
+function resolveFoul(attackCard, state) {
+  const defender = state.defender;
+  const attacker = state.attacker;
+  const defPlayer = state.players[defender];
+  const newFouls = (defPlayer.fouls || 0) + 1;
+  let cardNotif = null, suspended = defPlayer.suspended || 0;
+  if (newFouls === 2) cardNotif = 'yellow';
+  if (newFouls >= 3) { cardNotif = 'red'; suspended = 2; }
+
+  const isShot = ['shot', 'goal', 'supershot'].includes(attackCard.id);
+  if (isShot) {
+    return {
+      success: 'foul_on_shot', possession: 'attacker', event: 'penalty_awarded',
+      triggersPenalty: true, penaltyFor: attacker,
+      // FIX 3: track who committed the foul — only they can play VAR on this penalty
+      foulCommitter: defender,
+      defenderFouls: newFouls, cardNotif, suspended,
+      detail: `فاول على الشوطة — بنلتي لـ ${state.players[attacker].name}`,
+    };
+  }
+  return {
+    success: 'foul', possession: 'attacker', event: 'foul_committed',
+    triggersPenalty: false, penaltyFor: null, foulCommitter: null,
+    defenderFouls: newFouls, cardNotif, suspended,
+    detail: `فاول — الاستحواذ لـ ${state.players[attacker].name}`,
+  };
+}
+
+// ─────────────────────────────────────────────
+// PENALTY RESOLUTION
+// FIX 3: VAR is the ONLY thing that can contest penalty
+// Own Goal has NO effect on penalty
+// ─────────────────────────────────────────────
+function resolvePenalty(defenseCard, state) {
+  const attacker = state.pendingPenaltyFor;
+
+  // FIX 3: VAR on penalty — trigger coin flip
+  if (defenseCard.id === 'var') {
+    return {
+      success: 'var_on_penalty',
+      event: 'var_on_penalty',
+      goalScored: false,        // pending VAR result
+      triggerVAR: true,
+      varPlayedBy: state.defender,
+      detail: 'VAR على البنلتي — رمية العملة',
+    };
+  }
+
+  // Any other card (including own goal) — penalty scores, card burned
+  return {
+    success: 'attack', event: 'penalty_scored',
+    goalScored: true, scoringPlayer: attacker,
+    possession: 'loose',
+    detail: `بنلتي — هدف لـ ${state.players[attacker].name}`,
+  };
+}
+
+// ─────────────────────────────────────────────
+// VAR RESOLUTION
+// Player who played VAR chooses heads or tails
+// Heads = confirm original event (goal stands)
+// Tails = reverse original event (goal cancelled)
+// ─────────────────────────────────────────────
+function resolveVAR(playerChoice) {
+  const flip = Math.random() < 0.5 ? 'heads' : 'tails';
+  const won = flip === playerChoice;
+  // won + heads = goal confirmed
+  // won + tails = goal reversed
+  // lost + heads = goal reversed (flip was tails)
+  // lost + tails = goal confirmed (flip was heads)
+  const goalStands = (won && playerChoice === 'heads') || (!won && playerChoice === 'tails');
+  return {
+    flip, playerChoice, won, goalStands,
+    event: 'var_resolved',
+    detail: goalStands ? 'VAR: الهدف اتأكد' : 'VAR: الهدف اتلغى',
+  };
+}
+
+// ─────────────────────────────────────────────
+// RESHUFFLE
+// ─────────────────────────────────────────────
+function resolveReshuffle(state, playerId, cardUidsToSwap, source) {
+  if (source === 'teammate' && state.gameMode !== '2v2') return { error: 'خيار الزميل مش متاح في 1v1' };
+  const player = { ...state.players[playerId] };
+  let hand = [...player.hand];
+  let dk = [...state.deck], dp = [...state.discardPile];
+  if (source === 'deck') {
+    const count = cardUidsToSwap.length;
+    cardUidsToSwap.forEach(uid => {
+      const i = hand.findIndex(c => c.uid === uid);
+      if (i !== -1) dp.push(hand.splice(i, 1)[0]);
+    });
+    if (dk.length < count) { dk = [...dk, ...shuffle(dp)]; dp = []; }
+    for (let i = 0; i < count && dk.length > 0; i++) hand.push(dk.shift());
+    return { ...state, deck: dk, discardPile: dp, players: { ...state.players, [playerId]: { ...player, hand } }, event: 'reshuffle_deck' };
+  }
+  return state;
+}
+
+// ─────────────────────────────────────────────
+// GOAL SCORING
+// ─────────────────────────────────────────────
+function scoreGoal(state, scoringPlayerId) {
+  const player = { ...state.players[scoringPlayerId] };
+  player.goals = (player.goals || 0) + 1;
+  return {
+    ...state,
+    players: { ...state.players, [scoringPlayerId]: player },
+    lastEvent: { type: 'goal', player: scoringPlayerId, goals: player.goals },
+  };
+}
+
+function checkWin(state) {
+  for (const [id, player] of Object.entries(state.players)) {
+    if ((player.goals || 0) >= state.winGoals) return { winner: id, name: player.name };
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────────
+// TURN ADVANCEMENT
+// FIX 8: possession='attacker' means chain continues (no role swap)
+// ─────────────────────────────────────────────
+function advanceTurn(state, possessionResult) {
+  const { attacker, defender } = state;
+  let na, nd, nb, np;
+  if (possessionResult === 'attacker') {
+    // FIX 8: attacker keeps possession — same roles
+    na = attacker; nd = defender; nb = attacker; np = attacker;
+  } else if (possessionResult === 'defender' || possessionResult === 'steal' || possessionResult === 'owngoal') {
+    // Defender/steal: roles swap
+    na = defender; nd = attacker; nb = defender; np = defender;
+  } else {
+    // loose/neutral: roles swap, ball loose
+    na = defender; nd = attacker; nb = 'loose'; np = null;
+  }
+  return {
+    ...state,
+    phase: 'attack', attacker: na, defender: nd, ballState: nb, possession: np,
+    lastAttackCard: null, lastDefenseCard: null,
+    attackChain: [], chainPhase: 'idle',
+    strategyDrawCount: null, strategyCardsPlayed: 0,
+    turnCount: (state.turnCount || 0) + 1,
+    // Decrement suspension
+    players: {
+      ...state.players,
+      p1: { ...state.players.p1, suspended: Math.max(0, (state.players.p1.suspended || 0) - (state.players.p1.suspended > 0 ? 1 : 0)) },
+      p2: { ...state.players.p2, suspended: Math.max(0, (state.players.p2.suspended || 0) - (state.players.p2.suspended > 0 ? 1 : 0)) },
+    },
+  };
+}
+
+function applyFoulPenalties(state, defenderId, foulResult) {
+  const player = { ...state.players[defenderId] };
+  player.fouls = foulResult.defenderFouls;
+  if (foulResult.cardNotif === 'yellow') player.yellowCard = true;
+  if (foulResult.cardNotif === 'red') { player.redCard = true; player.suspended = foulResult.suspended; }
+  return { ...state, players: { ...state.players, [defenderId]: player } };
+}
+
+// ─────────────────────────────────────────────
+// FIX 7: STRATEGY MODE — draw phase
+// ─────────────────────────────────────────────
+function strategyStartTurn(state, playerId, drawCount) {
+  if (state.mode !== 'strategy') return { error: 'مش Strategy Mode' };
+  if (drawCount < 1 || drawCount > 3) return { error: 'سحب من 1 لـ 3 بس' };
+  if (state.attacker !== playerId) return { error: 'مش دورك' };
+  if (state.strategyDrawCount !== null) return { error: 'سحبت بالفعل' };
+  let newState = drawCards(state, playerId, drawCount);
+  return { ...newState, strategyDrawCount: drawCount, strategyCardsPlayed: 0 };
+}
+
+// ─────────────────────────────────────────────
+// PROCESS ACTION — main entry point
+// ─────────────────────────────────────────────
+function processAction(state, action) {
+  const { type, playerId } = action;
+
+  if (type === 'end_match') {
+    const leader = getCurrentLeader(state);
+    return { newState: { ...state, phase: 'gameover', winner: leader }, result: { event: 'end_match' } };
+  }
+
+  if (type === 'chain_interrupt') {
+    // FIX 4: Chain — non-possessor steals possession immediately
+    if (state.attacker === playerId) return { error: 'Chain بس لو مش معاك الكرة' };
+    if (state.phase !== 'attack' && state.phase !== 'defend') return { error: 'مش وقت Chain' };
+    let newState = discardFromHand(state, playerId, action.cardUid);
+    newState = drawCard(newState, playerId);
+    // Swap attacker/defender
+    newState = {
+      ...newState,
+      attacker: playerId,
+      defender: playerId === 'p1' ? 'p2' : 'p1',
+      phase: 'attack',
+      attackChain: [], chainPhase: 'idle',
+      lastAttackCard: null, lastDefenseCard: null,
+      ballState: playerId, possession: playerId,
+      lastEvent: { type: 'chain', player: playerId, detail: 'استخلاص! الاستحواذ اتسرق' },
+    };
+    return { newState, result: { event: 'chain', player: playerId } };
+  }
+
+  if (type === 'var_choice') {
+    if (state.phase !== 'var_pending') return { error: 'مفيش VAR في الانتظار' };
+    if (state.pendingVARFor !== playerId) return { error: 'مش إنت اللي لعبت VAR' };
+    const varResult = resolveVAR(action.varChoice);
+    let newState = { ...state };
+    // Apply result
+    if (!varResult.goalStands && state.pendingVAREvent) {
+      // Goal reversed — subtract goal
+      const scorer = state.pendingVAREvent.player;
+      if (scorer) {
+        const p = { ...newState.players[scorer] };
+        p.goals = Math.max(0, (p.goals || 0) - 1);
+        newState.players = { ...newState.players, [scorer]: p };
+      }
+    }
+    newState = {
+      ...newState, phase: 'attack',
+      pendingVARFor: null, pendingVAREvent: null, varWindowOpen: false,
+      lastEvent: { type: 'var_resolved', ...varResult },
+    };
+    // Advance turn after VAR
+    newState = advanceTurn(newState, 'loose');
+    return { newState, result: varResult };
+  }
+
+  if (type === 'reshuffle') {
+    const newState = resolveReshuffle(state, playerId, action.reshuffleUids, action.reshuffleSource || 'deck');
+    if (newState.error) return { error: newState.error };
+    return { newState, result: { event: 'reshuffle' } };
+  }
+
+  if (type === 'play_attack') {
+    if (state.phase !== 'attack') return { error: 'مش وقت الهجوم' };
+    if (state.attacker !== playerId) return { error: 'مش دورك تهاجم' };
+    // FIX 7: Strategy Mode — must draw first
+    if (state.mode === 'strategy' && state.strategyDrawCount === null) return { error: 'لازم تختار كام تسحب الأول' };
+
+    const card = (state.players[playerId].hand || []).find(c => c.uid === action.cardUid);
+    if (!card) return { error: 'الكارت مش في إيدك' };
+
+    let newState = discardFromHand(state, playerId, card.uid);
+    // In Luck Mode: draw replacement immediately. Strategy Mode: already drew at start of turn.
+    if (state.mode === 'luck') newState = drawCard(newState, playerId);
+
+    const isShot = ['shot', 'supershot', 'goal'].includes(card.id);
+    newState = {
+      ...newState,
+      phase: 'defend',
+      lastAttackCard: card,
+      attackChain: [...(state.attackChain || []), card.id],
+      chainPhase: isShot ? 'shot_phase' : 'active',
+      // FIX 7: track strategy cards played
+      strategyCardsPlayed: (state.strategyCardsPlayed || 0) + 1,
+      lastEvent: { type: 'attack_played', player: playerId, card: card.id },
+    };
+
+    // End Match special
+    if (card.id === 'endmatch') {
+      return { newState: { ...newState, phase: 'gameover', winner: getCurrentLeader(newState) }, result: { event: 'end_match' } };
+    }
+
+    return { newState, result: { event: 'attack_played', card } };
+  }
+
+  if (type === 'play_defense') {
+    // Penalty phase
+    if (state.phase === 'penalty_pending') {
+      if (state.defender !== playerId) return { error: 'مش دورك' };
+      const card = (state.players[playerId].hand || []).find(c => c.uid === action.cardUid);
+      if (!card) return { error: 'الكارت مش في إيدك' };
+      const penResult = resolvePenalty(card, state);
+      let newState = discardFromHand(state, playerId, card.uid);
+      newState = drawCard(newState, playerId);
+
+      if (penResult.triggerVAR) {
+        // FIX 3: VAR played on penalty by foul-committer
+        newState = {
+          ...newState, phase: 'var_pending',
+          pendingVARFor: playerId,
+          pendingVAREvent: { type: 'penalty', player: state.pendingPenaltyFor },
+          lastEvent: { type: 'var_on_penalty' },
+        };
+        return { newState, result: penResult };
+      }
+
+      if (penResult.goalScored) {
+        newState = scoreGoal(newState, penResult.scoringPlayer);
+        const win = checkWin(newState);
+        if (win) return { newState: { ...newState, phase: 'gameover', winner: win.winner }, result: penResult };
+        newState = { ...newState, varWindowOpen: false, pendingPenaltyFor: null };
+        newState = advanceTurn(newState, 'loose');
+      } else {
+        newState = advanceTurn(newState, 'loose');
+      }
+      return { newState, result: penResult };
+    }
+
+    // Normal defense
+    if (state.phase !== 'defend') return { error: 'مش وقت الدفاع' };
+    if (state.defender !== playerId) return { error: 'مش دورك تدافع' };
+
+    const card = (state.players[playerId].hand || []).find(c => c.uid === action.cardUid);
+    if (!card) return { error: 'الكارت مش في إيدك' };
+
+    const atkCard = state.lastAttackCard;
+    const duelResult = resolveDuel(atkCard, card, state);
+
+    let newState = discardFromHand(state, playerId, card.uid);
+    newState = drawCard(newState, playerId);
+    newState = { ...newState, lastDefenseCard: card };
+
+    // Apply foul penalties
+    if (duelResult.event === 'foul_committed' || duelResult.event === 'penalty_awarded') {
+      newState = applyFoulPenalties(newState, playerId, duelResult);
+    }
+
+    // Penalty triggered
+    if (duelResult.triggersPenalty) {
+      newState = {
+        ...newState, phase: 'penalty_pending',
+        pendingPenaltyFor: duelResult.penaltyFor,
+        lastFoulCommitter: duelResult.foulCommitter,  // FIX 3
+        lastEvent: { type: 'penalty_awarded', player: duelResult.penaltyFor },
+      };
+      return { newState, result: duelResult };
+    }
+
+    // FIX 2: Own Goal — defender scores
+    if (duelResult.ownGoalScored) {
+      newState = scoreGoal(newState, playerId); // defender scores
+      const win = checkWin(newState);
+      if (win) return { newState: { ...newState, phase: 'gameover', winner: win.winner }, result: duelResult };
+      newState = advanceTurn(newState, 'defender');
+      newState = { ...newState, lastEvent: { type: 'own_goal_scored', player: playerId } };
+      return { newState, result: duelResult };
+    }
+
+    const atkId = atkCard.id;
+    const attackSucceeded = duelResult.success === 'attack';
+
+    // Goal scored (attack on shot phase succeeded)
+    if (attackSucceeded && duelResult.goalScored) {
+      newState = scoreGoal(newState, state.attacker);
+      const win = checkWin(newState);
+      if (win) return { newState: { ...newState, phase: 'gameover', winner: win.winner }, result: duelResult };
+      // Open VAR window
+      const hasVAR = ['p1','p2'].some(pid => (newState.players[pid].hand || []).some(c => c.id === 'var'));
+      if (hasVAR) {
+        const varPlayer = ['p1','p2'].find(pid => (newState.players[pid].hand || []).some(c => c.id === 'var'));
+        newState = { ...newState, varWindowOpen: true, varWindowEvent: { type: 'goal', player: state.attacker }, pendingVARFor: varPlayer };
+      } else {
+        newState = advanceTurn(newState, 'loose');
+      }
+      return { newState, result: duelResult };
+    }
+
+    // FIX 8: Attack passed through (non-shot, wrong defense)
+    // Attacker KEEPS possession and continues chain — phase goes BACK to attack
+    if (attackSucceeded && duelResult.chainContinues) {
+      // In Strategy Mode: check if attacker still has cards to play
+      if (state.mode === 'strategy') {
+        const played = (newState.strategyCardsPlayed || 0);
+        const total = newState.strategyDrawCount || 1;
+        if (played >= total) {
+          // Played all required cards — turn ends, attacker keeps possession
+          newState = advanceTurn(newState, 'attacker');
+        } else {
+          // More cards to play in this combo
+          newState = { ...newState, phase: 'attack', lastAttackCard: null, lastDefenseCard: null };
+        }
+      } else {
+        // Luck Mode: attacker keeps possession, plays next card
+        newState = { ...newState, phase: 'attack', lastAttackCard: null, lastDefenseCard: null,
+          lastEvent: { type: 'attack_passed_through', card: atkId, detail: duelResult.detail } };
+      }
+      return { newState, result: duelResult };
+    }
+
+    // Defense succeeded — advance turn based on possession result
+    newState = advanceTurn(newState, duelResult.possession);
+    newState = { ...newState, lastEvent: { type: duelResult.event, detail: duelResult.detail } };
+    return { newState, result: duelResult };
+  }
+
+  if (type === 'pass_turn') {
+    // Defender burns first card — mandatory defense attempt
+    const player = state.players[playerId];
+    if ((player.hand || []).length === 0) return { error: 'مفيش كروت' };
+    const burned = player.hand[0];
+    let newState = discardFromHand(state, playerId, burned.uid);
+    newState = drawCard(newState, playerId);
+    const atkCard = state.lastAttackCard;
+    const isShot = atkCard && ['shot','supershot','goal'].includes(atkCard.id);
+    if (isShot) {
+      newState = scoreGoal(newState, state.attacker);
+      const win = checkWin(newState);
+      if (win) return { newState: { ...newState, phase: 'gameover', winner: win.winner }, result: { event: 'goal' } };
+      newState = advanceTurn(newState, 'loose');
+    } else {
+      // FIX 8: non-shot — attacker keeps possession
+      newState = { ...newState, phase: 'attack', lastAttackCard: null, lastDefenseCard: null,
+        lastEvent: { type: 'card_burned', detail: `${burned.ar} اتحرقت — الهجوم مستمر` } };
+    }
+    return { newState, result: { event: 'card_burned', card: burned } };
+  }
+
+  return { error: 'action مش معروف' };
+}
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function getCurrentLeader(state) {
+  const ids = Object.keys(state.players);
+  if (ids.length < 2) return null;
+  const [a, b] = ids;
+  const ga = state.players[a].goals || 0;
+  const gb = state.players[b].goals || 0;
+  if (ga > gb) return a;
+  if (gb > ga) return b;
+  return null;
+}
+
+// ─────────────────────────────────────────────
+// EXPORTS
+// ─────────────────────────────────────────────
+const OwnGoalEngine = {
+  CARDS, COUNTER_TABLE, POSSESSION_RESULT,
+  buildDeck, dealHand, shuffle,
+  createInitialState, drawCard, drawCards, discardFromHand,
+  getPlayableCards, resolveDuel, resolveFoul, resolvePenalty,
+  resolveVAR, resolveReshuffle, scoreGoal, checkWin,
+  advanceTurn, applyFoulPenalties, strategyStartTurn,
+  processAction, checkTurnover, getCurrentLeader,
+};
+
+if (typeof module !== 'undefined' && module.exports) module.exports = OwnGoalEngine;
+if (typeof window !== 'undefined') window.OwnGoalEngine = OwnGoalEngine;
+a name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Own Goal</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ── TOKENS ── */
+:root{
+  --ink:#0a0a0f;
+  --surface:#12121a;
+  --raise:#1c1c28;
+  --border:#ffffff12;
+  --border2:#ffffff22;
+  --text:#f0f0f0;
+  --muted:#6b6b80;
+  --atk:#e63946;
+  --def:#3a7bd5;
+  --spc:#9b5de5;
+  --gold:#ffd166;
+  --green:#06d6a0;
+  --r:14px;
+  --card-w:76px;
+  --card-h:112px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--ink)}
+body{font-family:'Cairo',sans-serif;color:var(--text);overscroll-behavior:none}
+.hidden{display:none!important}
+
+/* ── SCREENS ── */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;overflow-y:auto;overflow-x:hidden;z-index:10}
+
+/* ── LOADING ── */
+#s-loading{justify-content:center;background:var(--ink)}
+.load-logo{font-size:52px;font-weight:900;letter-spacing:-2px;color:var(--gold);text-align:center}
+.load-sub{font-size:13px;color:var(--muted);margin-top:8px;letter-spacing:2px}
+.load-dots{display:flex;gap:8px;margin-top:32px;justify-content:center}
+.load-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);animation:ldot 1.2s ease-in-out infinite}
+.load-dot:nth-child(2){animation-delay:.2s}
+.load-dot:nth-child(3){animation-delay:.4s}
+@keyframes ldot{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+/* ── LOBBY ── */
+#s-lobby{justify-content:flex-start;background:var(--ink)}
+.lobby-header{width:100%;padding:52px 24px 28px;text-align:center;flex-shrink:0}
+.game-logo{font-size:48px;font-weight:900;color:var(--text);letter-spacing:-2px;line-height:1}
+.game-logo span{color:var(--atk)}
+.game-tagline{font-size:12px;color:var(--muted);letter-spacing:3px;margin-top:6px;text-transform:uppercase}
+.pitch-line{width:64px;height:2px;background:var(--atk);margin:16px auto 0;border-radius:1px}
+
+.lobby-body{width:100%;max-width:400px;padding:0 24px 48px;display:flex;flex-direction:column;gap:16px}
+
+.field-group{display:flex;flex-direction:column;gap:6px}
+.field-label{font-size:11px;color:var(--muted);letter-spacing:2px}
+.field-input{width:100%;padding:14px 16px;background:var(--raise);border:1.5px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'Cairo',sans-serif;font-size:16px;outline:none;transition:border-color .18s;text-align:right}
+.field-input:focus{border-color:var(--gold)}
+.field-input::placeholder{color:var(--muted)}
+
+.mode-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode-btn{padding:14px 10px;background:var(--raise);border:1.5px solid var(--border);border-radius:var(--r);color:var(--muted);font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;text-align:center}
+.mode-btn.selected{border-color:var(--gold);color:var(--gold);background:rgba(255,209,102,.08)}
+.mode-btn-icon{font-size:22px;display:block;margin-bottom:4px}
+
+.action-stack{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.btn-primary{width:100%;padding:16px;background:var(--atk);border:none;border-radius:var(--r);color:white;font-family:'Cairo',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:transform .12s,opacity .12s;letter-spacing:.5px}
+.btn-primary:active{transform:scale(.97);opacity:.9}
+.btn-secondary{width:100%;padding:14px;background:transparent;border:1.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'Cairo',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:border-color .18s}
+.btn-secondary:active{border-color:var(--def)}
+
+.divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.join-panel{display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--raise);border:1.5px solid var(--border);border-radius:var(--r)}
+.join-panel.hidden{display:none}
+.code-input{width:100%;padding:14px;background:var(--ink);border:1.5px solid var(--border);border-radius:10px;color:var(--gold);font-family:'Cairo',sans-serif;font-size:28px;text-align:center;letter-spacing:10px;text-transform:uppercase;outline:none;font-weight:700}
+.code-input:focus{border-color:var(--gold)}
+.code-input::placeholder{color:var(--muted);font-size:14px;letter-spacing:2px}
+
+/* ── WAITING ROOM ── */
+#s-room{justify-content:center;background:var(--ink);gap:28px;padding:32px 24px}
+.room-code-panel{background:var(--raise);border:1.5px solid var(--border2);border-radius:20px;padding:24px 36px;text-align:center}
+.rcp-label{font-size:10px;color:var(--muted);letter-spacing:3px;margin-bottom:8px}
+.rcp-code{font-size:56px;font-weight:900;color:var(--gold);letter-spacing:14px;line-height:1}
+.rcp-hint{font-size:11px;color:var(--muted);margin-top:8px}
+.copy-btn{margin-top:12px;padding:8px 20px;background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.25);border-radius:8px;color:var(--gold);font-family:'Cairo',sans-serif;font-size:12px;cursor:pointer}
+
+.vs-panel{width:100%;max-width:320px;display:flex;align-items:center;gap:12px}
+.player-card{flex:1;background:var(--raise);border:1.5px solid var(--border);border-radius:16px;padding:16px 12px;text-align:center;transition:all .3s}
+.player-card.active{border-color:var(--green)}
+.pc-dot{width:10px;height:10px;border-radius:50%;background:var(--muted);margin:0 auto 10px;transition:all .3s}
+.pc-dot.on{background:var(--green);box-shadow:0 0 10px rgba(6,214,160,.6)}
+.pc-name{font-size:14px;font-weight:700}
+.pc-name.waiting{font-size:11px;color:var(--muted);font-weight:400;font-style:italic}
+.vs-sep{font-size:24px;font-weight:900;color:var(--atk);flex-shrink:0}
+
+.room-status{font-size:13px;color:var(--muted);text-align:center}
+.room-actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px}
+
+/* ── GAME SCREEN ── */
+#s-game{justify-content:space-between;background:var(--ink);padding:0}
+
+/* Score bar */
+.scorebar{width:100%;padding:10px 16px 8px;background:rgba(10,10,15,.92);border-bottom:1px solid var(--border);flex-shrink:0;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.sb-inner{display:flex;align-items:center;justify-content:space-between;max-width:420px;margin:0 auto}
+.sb-side{flex:1}
+.sb-side.mine{text-align:right}
+.sb-name{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+.sb-name.mine{margin-left:auto;text-align:right}
+.sb-score{font-size:46px;font-weight:900;line-height:1;color:var(--text)}
+.sb-score.mine{color:var(--gold)}
+.sb-mid{text-align:center;padding:0 10px;flex-shrink:0}
+.sb-sep{font-size:15px;color:var(--muted);font-weight:700}
+.card-notifs{display:flex;gap:4px;justify-content:center;margin-top:4px}
+.ycard-badge{width:7px;height:10px;background:var(--gold);border-radius:1px}
+.rcard-badge{width:7px;height:10px;background:var(--atk);border-radius:1px}
+.suspended-badge{font-size:9px;color:var(--atk);border:1px solid var(--atk);border-radius:4px;padding:0 4px}
+
+/* Mode badge */
+.mode-badge{font-size:9px;padding:2px 8px;border-radius:10px;background:rgba(155,93,229,.15);border:1px solid rgba(155,93,229,.3);color:#c084fc;margin-top:2px;display:inline-block}
+
+/* Possession bar */
+.poss-bar{width:100%;padding:5px 16px;background:rgba(0,0,0,.4);border-bottom:1px solid var(--border);text-align:center;font-size:11px;color:var(--muted);flex-shrink:0}
+.poss-name{color:var(--gold);font-weight:700}
+
+/* Opp hand */
+.opp-zone{width:100%;padding:6px 12px;display:flex;justify-content:center;gap:5px;flex-shrink:0;min-height:60px;align-items:center}
+.card-back{width:42px;height:60px;border-radius:8px;background:var(--raise);border:1px solid var(--border);position:relative;overflow:hidden}
+.card-back::after{content:'⬡';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--border2)}
+
+/* Play zone */
+.play-zone{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:8px 16px;position:relative}
+.clash-row{display:flex;gap:16px;align-items:center;justify-content:center}
+.play-slot{width:var(--card-w);height:var(--card-h);border-radius:var(--r);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);position:relative;overflow:hidden}
+.play-slot.filled{border:none}
+.clash-vs{font-size:16px;font-weight:900;color:var(--atk);flex-shrink:0}
+.status-msg{font-size:13px;font-weight:700;color:var(--gold);text-align:center;min-height:20px;letter-spacing:.3px;padding:0 12px}
+.event-msg{font-size:11px;color:var(--muted);text-align:center;min-height:16px;font-style:italic;padding:0 16px}
+
+/* Action bar */
+.abar{width:100%;display:flex;gap:8px;padding:0 16px 6px;justify-content:center;flex-shrink:0;min-height:48px;align-items:center}
+.btn-play{padding:12px 28px;background:var(--green);border:none;border-radius:var(--r);color:var(--ink);font-family:'Cairo',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:transform .12s;display:none}
+.btn-play:active{transform:scale(.96)}
+.btn-burn{padding:10px 16px;background:transparent;border:1.5px solid var(--border2);border-radius:var(--r);color:var(--muted);font-family:'Cairo',sans-serif;font-size:12px;cursor:pointer;display:none}
+.btn-burn:active{opacity:.7}
+
+/* Strategy draw bar */
+.strategy-bar{width:100%;padding:4px 16px;background:rgba(155,93,229,.08);border-top:1px solid rgba(155,93,229,.15);flex-shrink:0;display:none;align-items:center;justify-content:center;gap:8px}
+.strategy-bar.active{display:flex}
+.draw-btn{padding:8px 14px;background:rgba(155,93,229,.15);border:1px solid rgba(155,93,229,.3);border-radius:8px;color:#c084fc;font-family:'Cairo',sans-serif;font-size:12px;font-weight:600;cursor:pointer}
+.draw-btn.selected{background:rgba(155,93,229,.35);border-color:#9b5de5}
+.draw-label{font-size:10px;color:var(--muted)}
+
+/* My hand */
+.hand-wrap{width:100%;padding:4px 0 16px;overflow-x:auto;scrollbar-width:none;display:flex;justify-content:center;flex-shrink:0}
+.hand-wrap::-webkit-scrollbar{display:none}
+.hand{display:flex;gap:7px;padding:8px 16px;align-items:flex-end}
+
+/* ── CARDS ── */
+.card{width:var(--card-w);height:var(--card-h);border-radius:var(--r);position:relative;cursor:pointer;flex-shrink:0;overflow:hidden;transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s;border:1px solid var(--border)}
+.card:active{transform:translateY(-12px) scale(1.06)!important}
+.card.selected{transform:translateY(-18px) scale(1.08);z-index:5}
+.card.unplayable{opacity:.22;cursor:not-allowed;filter:grayscale(.8)}
+.card.atk{background:linear-gradient(155deg,#1a0505,#0e0202)}
+.card.atk::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(230,57,70,.28) 0%,transparent 65%)}
+.card.atk.selected{box-shadow:0 0 0 1.5px var(--atk),0 12px 32px rgba(230,57,70,.4)}
+.card.def{background:linear-gradient(155deg,#03091a,#02060f)}
+.card.def::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(58,123,213,.24) 0%,transparent 65%)}
+.card.def.selected{box-shadow:0 0 0 1.5px var(--def),0 12px 32px rgba(58,123,213,.4)}
+.card.spc{background:linear-gradient(155deg,#0d0516,#07020f)}
+.card.spc::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(155,93,229,.22) 0%,transparent 65%)}
+.card.spc.selected{box-shadow:0 0 0 1.5px var(--spc),0 12px 32px rgba(155,93,229,.4)}
+.card-body{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 6px}
+.card-type{font-size:8px;letter-spacing:1.5px;position:absolute;top:7px;right:0;left:0;text-align:center;font-weight:700;opacity:.6}
+.card-type.atk{color:var(--atk)}
+.card-type.def{color:var(--def)}
+.card-type.spc{color:var(--spc)}
+.card-icon{font-size:26px;line-height:1}
+.card-name{font-size:11px;font-weight:700;text-align:center;line-height:1.2;color:var(--text)}
+.card-name-en{font-size:8px;color:var(--muted);text-align:center;font-weight:400}
+.card-accent{position:absolute;top:0;right:0;width:28px;height:2px;border-radius:0 var(--r) 0 0}
+.card-accent.atk{background:var(--atk)}
+.card-accent.def{background:var(--def)}
+.card-accent.spc{background:var(--spc)}
+
+/* ── OVERLAYS ── */
+.overlay{position:fixed;inset:0;background:rgba(10,10,15,.88);display:flex;align-items:flex-end;justify-content:center;z-index:100;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.overlay.center{align-items:center}
+.overlay-panel{width:100%;max-width:420px;background:var(--surface);border-radius:24px 24px 0 0;padding:28px 24px 48px;border-top:1px solid var(--border2)}
+.overlay-panel.center{border-radius:24px;margin:24px}
+.ov-title{font-size:20px;font-weight:900;text-align:center;margin-bottom:6px}
+.ov-sub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:20px}
+.ov-actions{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+
+/* VAR overlay */
+.var-coin{width:80px;height:80px;border-radius:50%;background:var(--raise);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 20px;cursor:pointer;transition:transform .2s}
+.var-coin:active{transform:scale(.94)}
+.var-choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.var-choice{padding:16px;background:var(--raise);border:1.5px solid var(--border2);border-radius:var(--r);text-align:center;cursor:pointer;transition:all .18s}
+.var-choice:hover,.var-choice:active{border-color:var(--gold);background:rgba(255,209,102,.08)}
+.var-choice-icon{font-size:28px;display:block;margin-bottom:6px}
+.var-choice-label{font-size:13px;font-weight:700}
+
+/* Penalty overlay */
+.pen-icon{font-size:64px;text-align:center;margin-bottom:12px}
+.pen-options{display:flex;flex-direction:column;gap:8px}
+
+/* Game over overlay */
+.go-result{font-size:72px;text-align:center;margin-bottom:8px}
+.go-title{font-size:22px;font-weight:900;text-align:center}
+.go-score{font-size:14px;color:var(--muted);text-align:center;margin-top:4px}
+.go-clown{font-size:12px;color:var(--muted);text-align:center;margin-top:12px;padding:10px;background:var(--raise);border-radius:10px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--raise);border:1px solid var(--border2);border-radius:12px;padding:10px 20px;font-size:13px;color:var(--text);opacity:0;transition:all .25s;z-index:200;white-space:nowrap;max-width:90vw;text-align:center;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── RESHUFFLE OVERLAY ── */
+.reshuffle-hand{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0}
+.reshuffle-card{padding:10px 14px;background:var(--raise);border:1.5px solid var(--border);border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
+.reshuffle-card.chosen{border-color:var(--spc);background:rgba(155,93,229,.12);color:#c084fc}
+.reshuffle-count{font-size:11px;color:var(--muted);text-align:center}
+
+/* ── UTIL ── */
+.text-center{text-align:center}
+.mt-8{margin-top:8px}
+.mt-16{margin-top:16px}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="s-loading" class="screen">
+  <div>
+    <div class="load-logo">Own Goal</div>
+    <div class="load-sub">كورة كاردز</div>
+    <div class="load-dots">
+      <div class="load-dot"></div>
+      <div class="load-dot"></div>
+      <div class="load-dot"></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="s-lobby" class="screen hidden">
+  <div class="lobby-header">
+    <div class="game-logo">Own<span>Goal</span></div>
+    <div class="game-tagline">كورة الشارع — كارت لكارت</div>
+    <div class="pitch-line"></div>
+  </div>
+
+  <div class="lobby-body">
+    <div class="field-group">
+      <div class="field-label">اسمك</div>
+      <input id="inp-name" class="field-input" type="text" placeholder="ادخل اسمك" maxlength="16" autocomplete="off">
+    </div>
+
+    <div class="field-group">
+      <div class="field-label">وضع اللعب</div>
+      <div class="mode-row">
+        <button class="mode-btn selected" id="mode-luck" onclick="selectMode('luck')">
+          <span class="mode-btn-icon">🎲</span>
+          مود الحظ
+        </button>
+        <button class="mode-btn" id="mode-strategy" onclick="selectMode('strategy')">
+          <span class="mode-btn-icon">🧠</span>
+          مود الاستراتيجية
+        </button>
+      </div>
+    </div>
+
+    <div class="action-stack">
+      <button class="btn-primary" onclick="doCreate()">➕ إنشاء غرفة</button>
+      <div class="divider">أو</div>
+      <button class="btn-secondary" onclick="toggleJoin()">🚪 انضم لغرفة</button>
+    </div>
+
+    <div class="join-panel hidden" id="join-panel">
+      <input id="inp-code" class="code-input" type="text" placeholder="ABCD" maxlength="4" autocomplete="off" oninput="this.value=this.value.toUpperCase()">
+      <button class="btn-primary" onclick="doJoin()">انضم</button>
+    </div>
+  </div>
+</div>
+
+<!-- WAITING ROOM -->
+<div id="s-room" class="screen hidden">
+  <div class="text-center">
+    <div class="field-label" style="margin-bottom:4px">شارك الكود مع صاحبك</div>
+  </div>
+
+  <div class="room-code-panel">
+    <div class="rcp-label">كود الغرفة</div>
+    <div class="rcp-code" id="room-code-display">----</div>
+    <div class="rcp-hint">اكتب الكود ده عند صاحبك</div>
+    <button class="copy-btn" onclick="copyCode()">📋 نسخ الكود</button>
+  </div>
+
+  <div class="vs-panel">
+    <div class="player-card active" id="pc-p1">
+      <div class="pc-dot on" id="dot-p1"></div>
+      <div class="pc-name" id="pname-p1">---</div>
+    </div>
+    <div class="vs-sep">VS</div>
+    <div class="player-card" id="pc-p2">
+      <div class="pc-dot" id="dot-p2"></div>
+      <div class="pc-name waiting" id="pname-p2">في انتظار المنافس...</div>
+    </div>
+  </div>
+
+  <div class="room-status" id="room-status">في انتظار اللاعب الثاني...</div>
+
+  <div class="room-actions">
+    <button class="btn-primary hidden" id="btn-start" onclick="doStart()">🏁 ابدأ الماتش</button>
+    <button class="btn-secondary" onclick="doLeave()">↩ خروج</button>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="s-game" class="screen hidden">
+
+  <!-- Score bar -->
+  <div class="scorebar">
+    <div class="sb-inner">
+      <div class="sb-side mine">
+        <div class="sb-name mine" id="sb-myname">أنت</div>
+        <div class="sb-score mine" id="sb-myscore">0</div>
+        <div class="card-notifs" id="sb-mynotifs"></div>
+      </div>
+      <div class="sb-mid">
+        <div class="sb-sep">:</div>
+        <div class="mode-badge" id="mode-label">حظ</div>
+      </div>
+      <div class="sb-side">
+        <div class="sb-name" id="sb-oppname">منافس</div>
+        <div class="sb-score" id="sb-oppscore">0</div>
+        <div class="card-notifs" id="sb-oppnotifs"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Possession bar -->
+  <div class="poss-bar">
+    <span id="poss-label">الكرة لوز 🎲</span> <span class="poss-name" id="poss-name"></span>
+  </div>
+
+  <!-- Opponent hand (face down) -->
+  <div class="opp-zone" id="opp-zone"></div>
+
+  <!-- Strategy draw bar (hidden in luck mode) -->
+  <div class="strategy-bar" id="strategy-bar">
+    <span class="draw-label">سحب:</span>
+    <button class="draw-btn" id="draw-1" onclick="strategyPickDraw(1)">١</button>
+    <button class="draw-btn" id="draw-2" onclick="strategyPickDraw(2)">٢</button>
+    <button class="draw-btn" id="draw-3" onclick="strategyPickDraw(3)">٣</button>
+    <span class="draw-label" id="draw-hint">اختار كم تسحب</span>
+  </div>
+
+  <!-- Play zone -->
+  <div class="play-zone">
+    <div class="clash-row">
+      <div class="play-slot" id="sl-opp"><span>منافسك</span></div>
+      <div class="clash-vs">⚡</div>
+      <div class="play-slot" id="sl-me"><span>أنت</span></div>
+    </div>
+    <div class="status-msg" id="status-msg">...</div>
+    <div class="event-msg" id="event-msg"></div>
+  </div>
+
+  <!-- Action bar -->
+  <div class="abar">
+    <button class="btn-play" id="btn-play" onclick="playSelected()">العب الكارت</button>
+    <button class="btn-burn" id="btn-burn" onclick="burnSelected()">🔥 احرق كارت</button>
+  </div>
+
+  <!-- My hand -->
+  <div class="hand-wrap">
+    <div class="hand" id="my-hand"></div>
+  </div>
+</div>
+
+<!-- VAR OVERLAY -->
+<div class="overlay center hidden" id="ov-var">
+  <div class="overlay-panel center">
+    <div class="ov-title">📹 VAR</div>
+    <div class="ov-sub">إنت اللي بتلعب VAR — اختار وش أو ضهر</div>
+    <div class="var-choices">
+      <div class="var-choice" onclick="submitVAR('heads')">
+        <span class="var-choice-icon">🟡</span>
+        <div class="var-choice-label">وش</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">يأكد الحدث</div>
+      </div>
+      <div class="var-choice" onclick="submitVAR('tails')">
+        <span class="var-choice-icon">⚪</span>
+        <div class="var-choice-label">ضهر</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">يعكس الحدث</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VAR RESULT OVERLAY -->
+<div class="overlay center hidden" id="ov-var-result">
+  <div class="overlay-panel center">
+    <div class="ov-title" id="var-result-title">📹 نتيجة VAR</div>
+    <div class="ov-sub" id="var-result-sub"></div>
+    <div class="ov-actions">
+      <button class="btn-primary" onclick="closeOverlay('ov-var-result')">تمام</button>
+    </div>
+  </div>
+</div>
+
+<!-- PENALTY OVERLAY -->
+<div class="overlay center hidden" id="ov-penalty">
+  <div class="overlay-panel center">
+    <div class="pen-icon">🥅</div>
+    <div class="ov-title">بنلتي!</div>
+    <div class="ov-sub" id="pen-sub">هدف مضمون — بس أون جول يوقفه</div>
+    <div class="pen-options" id="pen-options"></div>
+  </div>
+</div>
+
+<!-- RESHUFFLE OVERLAY -->
+<div class="overlay hidden" id="ov-reshuffle">
+  <div class="overlay-panel">
+    <div class="ov-title">🔄 ريشافل</div>
+    <div class="ov-sub">اختار كروت تبدلها من الديك</div>
+    <div class="reshuffle-hand" id="reshuffle-cards"></div>
+    <div class="reshuffle-count" id="reshuffle-count">اختار 2 كروت</div>
+    <div class="ov-actions">
+      <button class="btn-primary" id="btn-reshuffle-confirm" onclick="confirmReshuffle()" disabled>بدّل</button>
+      <button class="btn-secondary" onclick="closeOverlay('ov-reshuffle')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME OVER OVERLAY -->
+<div class="overlay center hidden" id="ov-gameover">
+  <div class="overlay-panel center">
+    <div class="go-result" id="go-icon">🏆</div>
+    <div class="go-title" id="go-title">فزت!</div>
+    <div class="go-score" id="go-score"></div>
+    <div class="go-clown hidden" id="go-clown"></div>
+    <div class="ov-actions">
+      <button class="btn-primary" onclick="doRestart()">🔄 ماتش تاني</button>
+      <button class="btn-secondary" onclick="doLeave()">↩ خروج</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════════════════
+     ENGINE
+══════════════════════════════════════════════════════ -->
+<script>
+// ═══════════════════════════════════════════════════════════════
 // OWN GOAL — Game Engine v1.0
 // ═══════════════════════════════════════════════════════════════
 'use strict';
@@ -600,7 +1824,7 @@ async function doCreate(){
     const db=window._db;
     let code,tries=0;
     do{code=generateCode();tries++;}while(tries<10&&(await get(ref(db,`rooms/${code}`))).exists());
-    const deck=OwnGoalEngine.buildDeck(selectedMode);
+    const deck=OwnGoalEngine.buildDeck(selectedMode,'1v1');
     const d1=OwnGoalEngine.dealHand(deck,4);
     const d2=OwnGoalEngine.dealHand(d1.deck,4);
     const room={
@@ -744,6 +1968,12 @@ function syncUI(prev){
 
   // Handle new events
   handleEvents(prev);
+
+  // FIX 5: Check turnover (attacker has no attack cards)
+  if(gameState.phase==='attack' && gameState.attacker===myId){
+    const to=OwnGoalEngine.checkTurnover(gameState);
+    if(to){ applyTurnover(); return; }
+  }
 
   // VAR window
   if(gameState.varWindowOpen&&gameState.pendingVARFor===myId){
@@ -1004,7 +2234,16 @@ async function commitDefense(card,isBurn){
         players:room.players
       });
       room.pendingPenaltyFor=null;
-      if(penResult.goalScored){
+      // FIX 3: VAR on penalty
+    if(penResult.triggerVAR){
+      room.phase='var_pending';
+      room.pendingVARFor=myId;
+      room.pendingVAREvent={type:'penalty',player:room.pendingPenaltyFor};
+      room.lastEvent={type:'var_on_penalty',ts:Date.now()};
+      room.pendingPenaltyFor=null;
+      return room;
+    }
+    if(penResult.goalScored){
         room.players[penResult.scoringPlayer].goals=(room.players[penResult.scoringPlayer].goals||0)+1;
         room.lastEvent={type:'penalty_scored',player:penResult.scoringPlayer,ts:Date.now()};
         // Check win
@@ -1044,6 +2283,14 @@ async function commitDefense(card,isBurn){
       return room;
     }
 
+    // FIX 2: Own Goal — defender scores
+    if(duelResult.ownGoalScored){
+      room.players[myId].goals=(room.players[myId].goals||0)+1;
+      room.lastEvent={type:'own_goal_scored',player:myId,ts:Date.now()};
+      if(room.players[myId].goals>=room.winGoals){room.phase='gameover';room.winner=myId;}
+      else{advanceRoomTurn(room,'defender');}
+      return room;
+    }
     // Goal scored
     const atkId=atkCard.id;
     const atkSucceeded=duelResult.success==='attack';
@@ -1059,6 +2306,11 @@ async function commitDefense(card,isBurn){
         room.varWindowEvent={type:'goal',player:scorer};
         if(room.varWindowOpen)room.pendingVARFor=getPossibleVARPlayer(room);
       }
+    // FIX 8: attack passed through (non-shot, wrong defense) — attacker keeps possession
+    }else if(atkSucceeded&&duelResult.chainContinues){
+      room.phase='attack';
+      room.lastAttackCard=null;room.lastDefenseCard=null;
+      room.lastEvent={type:'attack_passed_through',card:atkId,detail:duelResult.detail,ts:Date.now()};
     }else{
       room.lastEvent={type:duelResult.event,detail:duelResult.detail,ts:Date.now()};
       advanceRoomTurn(room,duelResult.possession);
@@ -1265,7 +2517,7 @@ async function doRestart(){
   const{ref,runTransaction}=window._fbFns;
   await runTransaction(ref(window._db,`rooms/${roomCode}`),(room)=>{
     if(!room||room.phase!=='gameover')return room;
-    const deck=OwnGoalEngine.buildDeck(room.mode);
+    const deck=OwnGoalEngine.buildDeck(room.mode,room.gameMode);
     const d1=OwnGoalEngine.dealHand(deck,4);
     const d2=OwnGoalEngine.dealHand(d1.deck,4);
     const firstAtk=Math.random()<.5?'p1':'p2';
@@ -1288,6 +2540,59 @@ async function doRestart(){
 }
 window.doRestart=doRestart;
 
+// FIX 5: Apply Turnover
+async function applyTurnover(){
+  const{ref,runTransaction}=window._fbFns;
+  await runTransaction(ref(window._db,`rooms/${roomCode}`),(room)=>{
+    if(!room||room.phase!=='attack')return room;
+    const attacker=room.attacker;
+    const hand=room.players[attacker]?.hand||[];
+    const hasAtk=hand.some(c=>c.type==='attack');
+    if(hasAtk)return room; // no longer needed
+    // Swap roles
+    room.attacker=room.defender;
+    room.defender=attacker;
+    room.ballState=room.attacker;
+    room.possession=room.attacker;
+    room.attackChain=[];room.chainPhase='idle';
+    room.lastAttackCard=null;room.lastDefenseCard=null;
+    room.lastEvent={type:'turnover',player:attacker,ts:Date.now()};
+    return room;
+  });
+  toast('Turnover — مفيش كروت هجوم!');
+}
+
+// FIX 4: Play Chain interrupt
+async function playChain(cardUid){
+  const{ref,runTransaction}=window._fbFns;
+  await runTransaction(ref(window._db,`rooms/${roomCode}`),(room)=>{
+    if(!room)return room;
+    if(room.phase!=='attack'&&room.phase!=='defend')return room;
+    if(room.attacker===myId)return room; // must NOT have possession
+    const hand=[...(room.players[myId].hand||[])];
+    const idx=hand.findIndex(c=>c.uid===cardUid);
+    if(idx===-1)return room;
+    const[burned]=hand.splice(idx,1);
+    let dk=[...(room.deck||[])];let dp=[...(room.discardPile||[])];
+    dp.push(burned);
+    if(dk.length===0&&dp.length>0){dk=OwnGoalEngine.shuffle(dp);dp=[];}
+    if(dk.length>0)hand.push(dk.shift());
+    room.players[myId].hand=hand;room.deck=dk;room.discardPile=dp;
+    // Swap possession
+    const prevAtk=room.attacker;
+    room.attacker=myId;
+    room.defender=prevAtk;
+    room.phase='attack';
+    room.ballState=myId;room.possession=myId;
+    room.attackChain=[];room.chainPhase='idle';
+    room.lastAttackCard=null;room.lastDefenseCard=null;
+    room.lastEvent={type:'chain',player:myId,ts:Date.now()};
+    return room;
+  });
+  toast('⛓️ استخلاص! الكرة معاك');
+}
+window.playChain=playChain;
+
 // ── EVENT HANDLER ──
 function handleEvents(prev){
   const gs=gameState;
@@ -1295,12 +2600,23 @@ function handleEvents(prev){
   if(!ev||!prev||ev.ts===prev?.lastEvent?.ts)return;
   const msgEl=document.getElementById('event-msg');
   const msgs={
-    goal:'⚽ هدف!',attack_succeeded:'✅ الهجوم نجح',defense_stole:'✂️ قاطع وأخد الكرة!',
-    defense_neutral:'🛡️ صد! الكرة لوز',foul_committed:'🦵 فاول!',penalty_awarded:'🥅 بنلتي!',
-    penalty_scored:'⚽ بنلتي — هدف!',penalty_saved:'✋ أون جول ألغى البنلتي',
-    var_resolved:ev.won?`📹 VAR ${ev.reversed?'عكس الحدث':'أكد الحدث'}`:'📹 VAR فشل',
-    reshuffle:'🔄 ريشافل تم',card_burned:'🔥 كارت اتحرق',
-    beaten:'😬 مفيش رد — الهجوم نجح',end_match:'🏁 نهاية الماتش',
+    goal:'⚽ هدف!',
+    attack_passed_through:`✅ ${ev.card||'الهجوم'} عدّى — استمر!`,
+    attack_succeeded:'✅ الهجوم نجح',
+    defense_stole:'✂️ قاطع وأخد الكرة!',
+    defense_neutral:'🛡️ صد! الكرة لوز',
+    foul_committed:'🦵 فاول! الاستحواذ للمهاجم',
+    penalty_awarded:'🥅 بنلتي!',
+    penalty_scored:'⚽ بنلتي — هدف!',
+    penalty_saved:'✋ البنلتي اتلغت',
+    var_on_penalty:'📹 VAR على البنلتي!',
+    var_resolved:ev.goalStands?'📹 VAR: الهدف اتأكد':'📹 VAR: الهدف اتلغى',
+    own_goal_scored:'😱 أون جول! الهدف لصالح المدافع!',
+    chain:'⛓️ استخلاص! الاستحواذ اتسرق',
+    turnover:'↩️ Turnover — مفيش كروت هجوم',
+    reshuffle:'🔄 ريشافل تم',
+    card_burned:'🔥 كارت اتحرق',
+    end_match:'🏁 نهاية الماتش',
   };
   const txt=msgs[ev.type]||ev.detail||'';
   if(txt){msgEl.textContent=txt;setTimeout(()=>{if(msgEl.textContent===txt)msgEl.textContent='';},3000);}
