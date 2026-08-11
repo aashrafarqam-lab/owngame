@@ -2916,8 +2916,8 @@ function showRoom(code,p1name,p2name){
   if(p2name){
     document.getElementById('pname-p2').textContent=p2name;
     document.getElementById('pname-p2').classList.remove('waiting');
-    document.getElementById('dot-p2').classList.add('on');
-    document.getElementById('pc-p2').classList.add('active');
+    document.getElementById('ava-p2').textContent='👤';
+    document.getElementById('ava-p2').classList.add('ready');
   }
   showScreen('room');
   listenRoom(code);
@@ -3003,8 +3003,8 @@ function syncUI(prev){
   if(p2?.name){
     document.getElementById('pname-p2').textContent=p2.name;
     document.getElementById('pname-p2').classList.remove('waiting');
-    document.getElementById('dot-p2').classList.add('on');
-    document.getElementById('pc-p2').classList.add('active');
+    document.getElementById('ava-p2').textContent='👤';
+    document.getElementById('ava-p2').classList.add('ready');
     if(myId==='p1'){
       document.getElementById('btn-start').classList.remove('hidden');
       document.getElementById('room-status').textContent='صاحبك جاهز — ابدأ الماتش!';
