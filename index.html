@@ -2199,11 +2199,17 @@ function getPlayableCards(state, playerId) {
       return { card, playable: false };
     }
 
+    // ── INDEPENDENT CARDS — always playable on your turn ──
+    if (card.id === 'reshuffle') {
+      // Playable any time it's your turn (attack or defense)
+      if (isAttacker || isDefender) return { card, playable: true };
+      return { card, playable: false, reason: 'مش دورك' };
+    }
+
     // ── ATTACK TURN ──
     if (phase === 'attack' && isAttacker) {
       if (card.type === 'attack') return { card, playable: true };
       if (card.id === 'endmatch') return { card, playable: true };
-      if (card.id === 'reshuffle') return { card, playable: true };
       if (card.id === 'var') return { card, playable: false, reason: 'VAR بس بعد حدث' };
       // FIX 2: owngoal is now a defense card, not playable on attack
       return { card, playable: false, reason: 'دورك تهاجم' };
@@ -2214,7 +2220,6 @@ function getPlayableCards(state, playerId) {
       if (card.id === 'block' && state.mode !== 'luck') return { card, playable: false, reason: 'Block بس في Luck Mode' };
       // FIX 2: owngoal now valid defense (against shot only — but let player play it, engine resolves)
       if (card.type === 'defense') return { card, playable: true };
-      if (card.id === 'reshuffle') return { card, playable: true };
       if (card.id === 'var') return { card, playable: false, reason: 'VAR بس بعد حدث' };
       // Any attack card can be burned as mandatory defense attempt
       if (card.type === 'attack') return { card, playable: true, burnOnly: true, reason: 'هتتحرق كمحاولة دفاع' };
@@ -2376,10 +2381,12 @@ function resolveReshuffle(state, playerId, cardUidsToSwap, source) {
   let dk = [...state.deck], dp = [...state.discardPile];
   if (source === 'deck') {
     const count = cardUidsToSwap.length;
+    // Remove chosen cards to discard
     cardUidsToSwap.forEach(uid => {
       const i = hand.findIndex(c => c.uid === uid);
       if (i !== -1) dp.push(hand.splice(i, 1)[0]);
     });
+    // Draw count cards to replace — hand size preserved (reshuffle card already removed by caller)
     if (dk.length < count) { dk = [...dk, ...shuffle(dp)]; dp = []; }
     for (let i = 0; i < count && dk.length > 0; i++) hand.push(dk.shift());
     return { ...state, deck: dk, discardPile: dp, players: { ...state.players, [playerId]: { ...player, hand } }, event: 'reshuffle_deck' };
@@ -3582,10 +3589,10 @@ async function confirmReshuffle(){
       const i=hand.findIndex(c=>c.uid===uid);
       if(i!==-1)dp.push(hand.splice(i,1)[0]);
     });
-    // Draw replacements (2 + 1 for reshuffle itself = 3 cards? No: reshuffle is an action not a drawn replace)
-    // Draw 2 new cards
-    if(dk.length<2){dk=[...dk,...OwnGoalEngine.shuffle(dp)];dp=[];}
-    for(let i=0;i<2&&dk.length>0;i++)hand.push(dk.shift());
+    // Draw 3 new cards: 2 replace the chosen cards + 1 replaces the reshuffle card itself
+    // This maintains the mandatory 4-card hand
+    if(dk.length<3){dk=[...dk,...OwnGoalEngine.shuffle(dp)];dp=[];}
+    for(let i=0;i<3&&dk.length>0;i++)hand.push(dk.shift());
     room.players[myId].hand=hand;room.deck=dk;room.discardPile=dp;
     room.lastEvent={type:'reshuffle',player:myId,ts:Date.now()};
     return room;
