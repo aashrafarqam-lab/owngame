@@ -2810,8 +2810,14 @@ window.selectMode=selectMode;
 // ── JOIN PANEL TOGGLE ──
 function toggleJoin(){
   const p=document.getElementById('join-panel');
-  p.classList.toggle('hidden');
-  if(!p.classList.contains('hidden'))document.getElementById('inp-code').focus();
+  const isOpen = p.classList.contains('open');
+  if(isOpen){
+    p.classList.remove('open');
+  } else {
+    p.classList.remove('hidden');
+    p.classList.add('open');
+    setTimeout(()=>document.getElementById('inp-code').focus(), 50);
+  }
 }
 window.toggleJoin=toggleJoin;
 
