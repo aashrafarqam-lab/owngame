@@ -2897,7 +2897,7 @@ async function doJoin(){
     if(!snap.exists()){toast('الغرفة دي مش موجودة');return;}
     const room=snap.val();
     if(room.phase!=='waiting'){toast('الماتش اتبدأ بالفعل');return;}
-    if(room.players?.p2){toast('الغرفة ممتلية');return;}
+    if(room.players?.p2?.name && room.players?.p2?.connected){toast('الغرفة ممتلئة');return;}
     const deck=OwnGoalEngine.buildDeck(room.mode);
     const dealt=OwnGoalEngine.dealHand(deck,4);
     await update(ref(db,`rooms/${code}/players`),{
@@ -2977,39 +2977,41 @@ function syncUI(prev){
   const{phase,players,mode}=gameState;
   const p1=players?.p1,p2=players?.p2;
 
-  // ── WAITING ROOM ──
-  if(phase==='waiting'){
-    showScreen('room');
-    if(typeof WorldCanvas!=='undefined')WorldCanvas.setState('lobby');
-    TunnelSystem.start(selectedTunnelMode);
-    if(p2?.name){
-      document.getElementById('pname-p2').textContent=p2.name;
-      document.getElementById('pname-p2').classList.remove('waiting');
-      document.getElementById('dot-p2').classList.add('on');
-      document.getElementById('pc-p2').classList.add('active');
-      if(myId==='p1'){
-        document.getElementById('btn-start').classList.remove('hidden');
-        document.getElementById('room-status').textContent='صاحبك جاهز — ابدأ الماتش!';
-      }else{
-        document.getElementById('room-status').textContent='في انتظار اللاعب الأول يبدأ...';
-      }
-    }
-    return;
-  }
-
   // ── GAME OVER ──
   if(phase==='gameover'||gameState.winner){
+    TunnelSystem.stop();
     showScreen('game');
+    if(typeof WorldCanvas!=='undefined')WorldCanvas.setState('game');
     renderGameUI();
     showGameOver();
     return;
   }
 
   // ── ACTIVE GAME ──
-  TunnelSystem.stop();
-  showScreen('game');
-  if(typeof WorldCanvas!=='undefined')WorldCanvas.setState('game');
-  renderGameUI();
+  if(phase!=='waiting'){
+    TunnelSystem.stop();
+    showScreen('game');
+    if(typeof WorldCanvas!=='undefined')WorldCanvas.setState('game');
+    renderGameUI();
+    return;
+  }
+
+  // ── WAITING ROOM ──
+  showScreen('room');
+  if(typeof WorldCanvas!=='undefined')WorldCanvas.setState('lobby');
+  TunnelSystem.start(selectedTunnelMode);
+  if(p2?.name){
+    document.getElementById('pname-p2').textContent=p2.name;
+    document.getElementById('pname-p2').classList.remove('waiting');
+    document.getElementById('dot-p2').classList.add('on');
+    document.getElementById('pc-p2').classList.add('active');
+    if(myId==='p1'){
+      document.getElementById('btn-start').classList.remove('hidden');
+      document.getElementById('room-status').textContent='صاحبك جاهز — ابدأ الماتش!';
+    }else{
+      document.getElementById('room-status').textContent='في انتظار اللاعب الأول يبدأ...';
+    }
+  }
 
   // Handle new events
   handleEvents(prev);
