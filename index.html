@@ -450,7 +450,7 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
 .ds-card:nth-child(1){bottom:0;right:0}
 .ds-card:nth-child(2){bottom:2px;right:2px;opacity:.6;transform:rotate(-2deg)}
 .ds-card:nth-child(3){bottom:4px;right:4px;opacity:.35;transform:rotate(-4deg)}
-.ds-card::after{content:'◆';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(201,168,76,.15)}
+.ds-card::after{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 260'%3E%3Cdefs%3E%3ClinearGradient id='sg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23E8C96A'/%3E%3Cstop offset='100%25' stop-color='%23C9A84C'/%3E%3C/linearGradient%3E%3CclipPath id='sc'%3E%3Cpath d='M110 6L196 26L196 110Q196 169 110 210Q24 169 24 110L24 26Z'/%3E%3C/clipPath%3E%3C/defs%3E%3Cpath d='M110 6L196 26L196 110Q196 169 110 210Q24 169 24 110L24 26Z' fill='%23060c18' stroke='url(%23sg)' stroke-width='3'/%3E%3Cg clip-path='url(%23sc)'%3E%3Crect x='24' y='122' width='172' height='3' fill='%2300C8FF' opacity='0.9'/%3E%3Ctext x='110' y='162' text-anchor='middle' font-family='sans-serif' font-size='36' letter-spacing='5' fill='%23C9A84C'%3EFLICK%3C/text%3E%3C/g%3E%3C/svg%3E") center/65% no-repeat;}
 .ds-count{
   position:absolute;top:-8px;right:-8px;
   width:18px;height:18px;border-radius:50%;
@@ -644,7 +644,7 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
   box-shadow:0 2px 8px rgba(0,0,0,.6);
 }
 .cback::before{content:'';position:absolute;inset:3px;border:0.5px solid rgba(201,168,76,.12);border-radius:4px;background:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(201,168,76,.04) 3px,rgba(201,168,76,.04) 4px)}
-.cback::after{content:'◆';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(201,168,76,.18)}
+.cback::after{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 260'%3E%3Cdefs%3E%3ClinearGradient id='sg2' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23E8C96A'/%3E%3Cstop offset='100%25' stop-color='%23C9A84C'/%3E%3C/linearGradient%3E%3CclipPath id='sc2'%3E%3Cpath d='M110 6L196 26L196 110Q196 169 110 210Q24 169 24 110L24 26Z'/%3E%3C/clipPath%3E%3C/defs%3E%3Cpath d='M110 6L196 26L196 110Q196 169 110 210Q24 169 24 110L24 26Z' fill='%23060c18' stroke='url(%23sg2)' stroke-width='3'/%3E%3Cg clip-path='url(%23sc2)'%3E%3Crect x='24' y='122' width='172' height='3' fill='%2300C8FF' opacity='0.9'/%3E%3Ctext x='110' y='162' text-anchor='middle' font-family='sans-serif' font-size='36' letter-spacing='5' fill='%23C9A84C'%3EFLICK%3C/text%3E%3C/g%3E%3C/svg%3E") center/70% no-repeat;}
 
 /* Slot card (played on pitch) */
 .slot-card{
@@ -3078,7 +3078,7 @@ function renderGameUI(){
   const oz=document.getElementById('opp-zone');
   const oppHandLen=oppPlayer?.hand?.length||0;
   oz.innerHTML='';
-  for(let i=0;i<oppHandLen;i++)oz.innerHTML+='<div class="card-back"></div>';
+  for(let i=0;i<oppHandLen;i++)oz.innerHTML+='<div class="cback"></div>';
 
   // Played card slots
   renderSlot('sl-me',gs.playedCards?.[myId]||gs.lastAttackCard&&gs.attacker===myId?gs.lastAttackCard:null, gs.lastDefenseCard&&gs.defender===myId?gs.lastDefenseCard:null);
@@ -4153,6 +4153,497 @@ window.addEventListener('DOMContentLoaded',()=>{
     showScreen('lobby');
   },2000);
 });
+
+// ══════════════════════════════════════════════════════
+// DIRECTION 02 — THE DRAW ANIMATION
+// Card physically flies from deck to hand on draw
+// ══════════════════════════════════════════════════════
+(function(){
+  // Inject CSS
+  const style = document.createElement('style');
+  style.textContent = `
+@keyframes drawFly {
+  0%   { transform: translate(0,0) rotate(0deg) scale(1); opacity:1; }
+  40%  { transform: translate(var(--dx2),var(--dy2)) rotate(180deg) scale(1.12); opacity:1; }
+  100% { transform: translate(var(--dxf),var(--dyf)) rotate(360deg) scale(0.85); opacity:0; }
+}
+@keyframes cardRevealFlash {
+  0%   { opacity:0; transform:scale(0.7) translateY(8px); }
+  60%  { opacity:1; transform:scale(1.12) translateY(-6px); }
+  100% { opacity:1; transform:scale(1) translateY(0); }
+}
+.draw-fly-card {
+  position:fixed; z-index:9999; pointer-events:none;
+  width:44px; height:62px; border-radius:8px;
+  background:linear-gradient(145deg,#060c18,#03080f);
+  border:1.5px solid rgba(201,168,76,.65);
+  animation: drawFly 0.5s cubic-bezier(.4,0,.2,1) forwards;
+}
+.draw-fly-card::after {
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 260'%3E%3Cdefs%3E%3ClinearGradient id='fly_g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23E8C96A'/%3E%3Cstop offset='100%25' stop-color='%23C9A84C'/%3E%3C/linearGradient%3E%3CclipPath id='fly_c'%3E%3Cpath d='M110 6L196 26L196 110Q196 169 110 210Q24 169 24 110L24 26Z'/%3E%3C/clipPath%3E%3C/defs%3E%3Cpath d='M110 6L196 26L196 110Q196 169 110 210Q24 169 24 110L24 26Z' fill='%23060c18' stroke='url(%23fly_g)' stroke-width='3'/%3E%3Cg clip-path='url(%23fly_c)'%3E%3Crect x='24' y='122' width='172' height='3' fill='%2300C8FF' opacity='0.9'/%3E%3Ctext x='110' y='162' text-anchor='middle' font-family='sans-serif' font-size='36' letter-spacing='5' fill='%23C9A84C'%3EFLICK%3C/text%3E%3C/g%3E%3C/svg%3E") center/72% no-repeat;
+}
+.draw-flash-pulse {
+  position:fixed;z-index:9998;pointer-events:none;
+  width:60px;height:60px;border-radius:50%;
+  border:2px solid rgba(0,200,255,.7);
+  animation:pulseRing .5s ease-out forwards;
+}
+@keyframes pulseRing {
+  0%   { transform:scale(0.5); opacity:.8; }
+  100% { transform:scale(2.5); opacity:0; }
+}
+.hand-card-new {
+  animation: cardRevealFlash 0.4s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+`;
+  document.head.appendChild(style);
+
+  // Intercept the deck-count update to trigger animation
+  const origSync = window.syncUI;
+  let lastDeckCount = null;
+  if (origSync) {
+    window.syncUI = function(prev) {
+      const gs = gameState;
+      const newCount = (gs && gs.deck) ? gs.deck.length : null;
+      if (lastDeckCount !== null && newCount !== null && newCount < lastDeckCount) {
+        triggerDrawAnimation();
+      }
+      lastDeckCount = newCount;
+      origSync.apply(this, arguments);
+    };
+  }
+
+  function triggerDrawAnimation() {
+    const deckEl = document.getElementById('deck-stack');
+    const handEl = document.getElementById('my-hand');
+    if (!deckEl || !handEl) return;
+    const deckR = deckEl.getBoundingClientRect();
+    const handR = handEl.getBoundingClientRect();
+    const sx = deckR.left + deckR.width/2 - 22;
+    const sy = deckR.top + deckR.height/2 - 31;
+    const fx = handR.left + handR.width - 60;
+    const fy = handR.top + 10;
+    const mx = (sx + fx)/2 - 22;
+    const my = Math.min(sy, fy) - 80;
+    const card = document.createElement('div');
+    card.className = 'draw-fly-card';
+    card.style.left = sx + 'px';
+    card.style.top  = sy + 'px';
+    card.style.setProperty('--dx2', (mx - sx) + 'px');
+    card.style.setProperty('--dy2', (my - sy) + 'px');
+    card.style.setProperty('--dxf', (fx - sx) + 'px');
+    card.style.setProperty('--dyf', (fy - sy) + 'px');
+    document.body.appendChild(card);
+    // Pulse ring at midpoint
+    setTimeout(function() {
+      const ring = document.createElement('div');
+      ring.className = 'draw-flash-pulse';
+      ring.style.left = (mx + 8) + 'px';
+      ring.style.top  = (my + 8) + 'px';
+      document.body.appendChild(ring);
+      setTimeout(function(){ring.remove();}, 600);
+    }, 200);
+    setTimeout(function() {
+      card.remove();
+      // Flash newest hand card
+      const cards = document.querySelectorAll('#my-hand .card');
+      if (cards.length) {
+        const last = cards[cards.length - 1];
+        last.classList.add('hand-card-new');
+        setTimeout(function(){last.classList.remove('hand-card-new');}, 500);
+      }
+    }, 520);
+  }
+})();
+
+// ══════════════════════════════════════════════════════
+// DIRECTION 01 — LIVING COUNTDOWN
+// Deck stack shrinks + changes color as cards deplete
+// ══════════════════════════════════════════════════════
+(function(){
+  const style = document.createElement('style');
+  style.textContent = `
+.ds-stack[data-count="low"] .ds-card { border-color:rgba(255,149,0,.5)!important; }
+.ds-stack[data-count="low"] .ds-count { color:#FF9500!important; border-color:rgba(255,149,0,.35)!important; }
+.ds-stack[data-count="danger"] .ds-card { border-color:rgba(255,59,92,.6)!important; }
+.ds-stack[data-count="danger"] .ds-count { color:#FF3B5C!important; border-color:rgba(255,59,92,.4)!important; animation:dangerPulse .8s ease-in-out infinite; }
+@keyframes dangerPulse { 0%,100%{box-shadow:0 0 4px rgba(255,59,92,.1)} 50%{box-shadow:0 0 12px rgba(255,59,92,.5)} }
+.deck-danger-ring {
+  position:absolute;inset:-3px;border-radius:10px;
+  border:1.5px solid rgba(255,59,92,.5);
+  animation:dangerPulse .8s ease-in-out infinite;
+  pointer-events:none;
+}
+`;
+  document.head.appendChild(style);
+
+  // Hook into the deck-count update
+  const origSetText = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent') && Object.getOwnPropertyDescriptor(Node.prototype, 'textContent').set;
+  // Instead, observe deck-count element changes
+  const obs = new MutationObserver(function() {
+    updateDeckState();
+  });
+  function attachObs() {
+    const el = document.getElementById('deck-count');
+    if (el) {
+      obs.observe(el, {childList:true, characterData:true, subtree:true});
+      updateDeckState();
+    } else {
+      setTimeout(attachObs, 500);
+    }
+  }
+  attachObs();
+
+  function updateDeckState() {
+    const countEl = document.getElementById('deck-count');
+    const stackEl = document.getElementById('deck-stack');
+    if (!countEl || !stackEl) return;
+    const count = parseInt(countEl.textContent) || 0;
+    // Remove existing state
+    stackEl.removeAttribute('data-count');
+    const ring = stackEl.querySelector('.deck-danger-ring');
+    if (ring) ring.remove();
+    // Adjust visual stack height based on count
+    const cards = stackEl.querySelectorAll('.ds-card');
+    if (count <= 3) {
+      stackEl.setAttribute('data-count', 'danger');
+      cards.forEach(function(c,i){
+        c.style.height = Math.max(16, 53 - (3-i)*4) + 'px';
+      });
+      // Add pulse ring
+      const r = document.createElement('div');
+      r.className = 'deck-danger-ring';
+      stackEl.appendChild(r);
+    } else if (count <= 8) {
+      stackEl.setAttribute('data-count', 'low');
+      cards.forEach(function(c,i){
+        c.style.height = Math.max(28, 53 - (8-count)*2 - i*2) + 'px';
+      });
+    } else if (count <= 14) {
+      cards.forEach(function(c,i){
+        c.style.height = Math.max(36, 53 - (14-count) - i*2) + 'px';
+      });
+    } else {
+      cards.forEach(function(c){c.style.height = '';});
+    }
+    // Red heartbeat on broadcast bar when count <= 5
+    const bcBar = document.getElementById('scorebar');
+    if (bcBar) {
+      if (count <= 5 && count > 0) {
+        bcBar.classList.add('bc-tension');
+      } else {
+        bcBar.classList.remove('bc-tension');
+      }
+    }
+  }
+})();
+
+// ══════════════════════════════════════════════════════
+// TENSION STATE — heartbeat + red vignette when low deck
+// ══════════════════════════════════════════════════════
+(function(){
+  const style = document.createElement('style');
+  style.textContent = `
+#tension-hb {
+  position:fixed;top:0;left:0;right:0;height:2px;z-index:10000;pointer-events:none;overflow:hidden;
+  display:none;
+}
+#tension-hb-line {
+  height:100%;width:200%;
+  background:linear-gradient(90deg,transparent 10%,rgba(255,59,92,.9) 11%,transparent 12%,rgba(255,59,92,.5) 13%,transparent 14%,transparent 40%,rgba(255,59,92,.7) 41%,transparent 42%);
+  animation:hbScroll .9s linear infinite;
+}
+@keyframes hbScroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+#tension-vignette {
+  position:fixed;inset:0;pointer-events:none;z-index:9990;
+  background:radial-gradient(ellipse at 50% 50%,transparent 50%,rgba(255,30,30,.08) 100%);
+  display:none;
+  animation:vigPulse .9s ease-in-out infinite;
+}
+@keyframes vigPulse { 0%,100%{opacity:0} 50%{opacity:1} }
+.bc-tension { border-bottom-color:rgba(255,59,92,.5)!important; }
+.bc-tension #sb-myscore, .bc-tension #sb-oppscore { color:#FF3B5C!important; }
+`;
+  document.head.appendChild(style);
+
+  // Inject tension elements
+  const hb = document.createElement('div');
+  hb.id = 'tension-hb';
+  hb.innerHTML = '<div id="tension-hb-line"></div>';
+  document.body.appendChild(hb);
+
+  const vig = document.createElement('div');
+  vig.id = 'tension-vignette';
+  document.body.appendChild(vig);
+
+  // Watch deck count
+  function checkTension() {
+    const el = document.getElementById('deck-count');
+    if (!el) return;
+    const count = parseInt(el.textContent) || 99;
+    const on = count <= 5 && count > 0;
+    document.getElementById('tension-hb').style.display = on ? 'block' : 'none';
+    document.getElementById('tension-vignette').style.display = on ? 'block' : 'none';
+  }
+  const obs = new MutationObserver(checkTension);
+  function attachTension() {
+    const el = document.getElementById('deck-count');
+    if (el) obs.observe(el, {childList:true,characterData:true,subtree:true});
+    else setTimeout(attachTension, 600);
+  }
+  attachTension();
+})();
+
+// ══════════════════════════════════════════════════════
+// POKER THROW GESTURE — swipe up on selected card to play
+// ══════════════════════════════════════════════════════
+(function(){
+  const style = document.createElement('style');
+  style.textContent = `
+.throw-trail {
+  position:fixed;z-index:9996;pointer-events:none;
+  width:6px;height:6px;border-radius:50%;
+  background:#00C8FF;opacity:.7;
+  animation:trailFade .4s ease-out forwards;
+}
+@keyframes trailFade { to{transform:scale(0);opacity:0} }
+.throw-card-fly {
+  position:fixed;z-index:9997;pointer-events:none;
+  border-radius:10px;
+  transition:none;
+  animation:throwArc var(--tarc) cubic-bezier(.2,0,.4,1) forwards;
+}
+@keyframes throwArc {
+  0%   { transform:translate(0,0) rotate(0deg) scale(1); opacity:1; }
+  50%  { transform:translate(var(--tx2),var(--ty2)) rotate(var(--rot2)) scale(1.08); opacity:1; }
+  100% { transform:translate(var(--txf),var(--tyf)) rotate(var(--rotf)) scale(.7); opacity:0; }
+}
+.throw-impact {
+  position:fixed;z-index:9998;pointer-events:none;
+  width:56px;height:56px;border-radius:50%;
+  border:2px solid rgba(201,168,76,.8);
+  animation:throwImpact .5s ease-out forwards;
+}
+@keyframes throwImpact { 0%{transform:scale(0.3);opacity:1} 100%{transform:scale(2.5);opacity:0} }
+`;
+  document.head.appendChild(style);
+
+  let touchStart = null;
+  let touchCard = null;
+
+  document.addEventListener('touchstart', function(e) {
+    const card = e.target.closest('.card');
+    if (!card) return;
+    if (!card.classList.contains('sel')) return; // only selected card
+    touchStart = { y: e.touches[0].clientY, x: e.touches[0].clientX, card: card };
+    touchCard = card;
+  }, {passive:true});
+
+  document.addEventListener('touchend', function(e) {
+    if (!touchStart || !touchCard) return;
+    const dy = touchStart.y - e.changedTouches[0].clientY;
+    const dx = e.changedTouches[0].clientX - touchStart.x;
+    const speed = Math.sqrt(dy*dy + dx*dx);
+    if (dy > 55 && speed > 60) {
+      // Throw gesture detected
+      const rect = touchCard.getBoundingClientRect();
+      animateThrow(rect, dx, dy);
+      // Trigger card play
+      setTimeout(function(){
+        if (window.playSelected) playSelected();
+      }, 100);
+    }
+    touchStart = null;
+    touchCard = null;
+  }, {passive:true});
+
+  // Mouse drag support for testing on desktop
+  let mouseStart = null;
+  document.addEventListener('mousedown', function(e) {
+    const card = e.target.closest('.card');
+    if (!card || !card.classList.contains('sel')) return;
+    mouseStart = {y:e.clientY, x:e.clientX, card:card};
+  });
+  document.addEventListener('mouseup', function(e) {
+    if (!mouseStart) return;
+    const dy = mouseStart.y - e.clientY;
+    const dx = e.clientX - mouseStart.x;
+    if (dy > 45) {
+      const rect = mouseStart.card.getBoundingClientRect();
+      animateThrow(rect, dx, dy);
+      setTimeout(function(){if (window.playSelected) playSelected();}, 100);
+    }
+    mouseStart = null;
+  });
+
+  function animateThrow(rect, dx, dy) {
+    const sx = rect.left;
+    const sy = rect.top;
+    const W = rect.width;
+    const H = rect.height;
+    // Destination: clash zone center
+    const clashEl = document.getElementById('sl-me') || document.querySelector('.clash-slot');
+    let fx = window.innerWidth/2 - W/2, fy = window.innerHeight*0.38;
+    if (clashEl) {
+      const cr = clashEl.getBoundingClientRect();
+      fx = cr.left + cr.width/2 - W/2;
+      fy = cr.top + cr.height/2 - H/2;
+    }
+    const mx = (sx + fx)/2 + dx*0.3;
+    const my = Math.min(sy, fy) - 60;
+    const rotDir = dx > 0 ? 1 : -1;
+    const card = document.createElement('div');
+    card.className = 'throw-card-fly';
+    card.style.left = sx + 'px';
+    card.style.top  = sy + 'px';
+    card.style.width = W + 'px';
+    card.style.height = H + 'px';
+    card.style.background = getComputedStyle(document.querySelector('.card.sel') || document.createElement('div')).background || 'linear-gradient(160deg,#faf0de,#e8d5a8)';
+    const speed = Math.min(0.5, Math.max(0.3, 80/Math.sqrt(dx*dx+dy*dy)));
+    card.style.setProperty('--tarc', speed + 's');
+    card.style.setProperty('--tx2', (mx-sx)+'px');
+    card.style.setProperty('--ty2', (my-sy)+'px');
+    card.style.setProperty('--txf', (fx-sx)+'px');
+    card.style.setProperty('--tyf', (fy-sy)+'px');
+    card.style.setProperty('--rot2', (rotDir*18)+'deg');
+    card.style.setProperty('--rotf', (rotDir*35)+'deg');
+    document.body.appendChild(card);
+    // Trail dots
+    for (let i=0; i<5; i++) {
+      setTimeout(function(){
+        const t = document.createElement('div');
+        t.className = 'throw-trail';
+        t.style.left = (sx + (fx-sx)*(i/5)) + 'px';
+        t.style.top  = (sy + (fy-sy)*(i/5) - 20) + 'px';
+        document.body.appendChild(t);
+        setTimeout(function(){t.remove();},500);
+      }, i*40);
+    }
+    // Impact burst at destination
+    setTimeout(function(){
+      const imp = document.createElement('div');
+      imp.className = 'throw-impact';
+      imp.style.left = (fx + W/2 - 28) + 'px';
+      imp.style.top  = (fy + H/2 - 28) + 'px';
+      document.body.appendChild(imp);
+      setTimeout(function(){imp.remove();},600);
+      card.remove();
+    }, speed * 1000);
+  }
+})();
+
+// ══════════════════════════════════════════════════════
+// POST-MATCH STATS — upgrade the gameover overlay
+// Adds goals / attacks / blocks / possession bars
+// ══════════════════════════════════════════════════════
+(function(){
+  const style = document.createElement('style');
+  style.textContent = `
+.go-stats {
+  width:100%;margin:10px 0 6px;display:flex;flex-direction:column;gap:7px;
+}
+.go-stat-row {
+  display:flex;align-items:center;gap:6px;
+}
+.go-stat-label {
+  font-size:9px;color:rgba(240,232,216,.4);letter-spacing:1px;min-width:52px;text-align:right;
+}
+.go-stat-bar-wrap {
+  flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;
+}
+.go-stat-bar {
+  height:100%;border-radius:3px;transition:width 1.2s cubic-bezier(.22,1,.36,1);
+  background:linear-gradient(90deg,#00C8FF,rgba(0,200,255,.5));
+}
+.go-stat-bar.win { background:linear-gradient(90deg,#C9A84C,rgba(201,168,76,.6)); }
+.go-stat-val {
+  font-size:9px;font-weight:700;color:rgba(240,232,216,.45);min-width:20px;text-align:center;
+}
+.go-divider { width:40px;height:1px;background:rgba(255,255,255,.08);margin:4px auto; }
+`;
+  document.head.appendChild(style);
+
+  // Inject stats section into the gameover overlay
+  function injectStatsSection() {
+    const ovp = document.querySelector('#ov-gameover .ovp');
+    if (!ovp) return;
+    if (ovp.querySelector('.go-stats')) return; // already injected
+    const divider = document.createElement('div');
+    divider.className = 'go-divider';
+    const statsWrap = document.createElement('div');
+    statsWrap.className = 'go-stats';
+    statsWrap.id = 'go-stats-wrap';
+    statsWrap.innerHTML = `
+      <div class="go-stat-row">
+        <span class="go-stat-label">أهداف</span>
+        <div class="go-stat-bar-wrap"><div class="go-stat-bar" id="stat-goals" style="width:0%"></div></div>
+        <span class="go-stat-val" id="stat-goals-val">0</span>
+      </div>
+      <div class="go-stat-row">
+        <span class="go-stat-label">هجمات</span>
+        <div class="go-stat-bar-wrap"><div class="go-stat-bar" id="stat-atk" style="width:0%"></div></div>
+        <span class="go-stat-val" id="stat-atk-val">0</span>
+      </div>
+      <div class="go-stat-row">
+        <span class="go-stat-label">بلوكات</span>
+        <div class="go-stat-bar-wrap"><div class="go-stat-bar" id="stat-def" style="width:0%"></div></div>
+        <span class="go-stat-val" id="stat-def-val">0</span>
+      </div>
+      <div class="go-stat-row">
+        <span class="go-stat-label">كروت لعبها</span>
+        <div class="go-stat-bar-wrap"><div class="go-stat-bar" id="stat-cards" style="width:0%"></div></div>
+        <span class="go-stat-val" id="stat-cards-val">0</span>
+      </div>
+    `;
+    // Insert before the actions
+    const acts = ovp.querySelector('.ov-acts');
+    if (acts) {
+      ovp.insertBefore(divider, acts);
+      ovp.insertBefore(statsWrap, acts);
+    } else {
+      ovp.appendChild(divider);
+      ovp.appendChild(statsWrap);
+    }
+  }
+
+  // Override the showGameover function to populate stats
+  const origShowGameover = window.showGameover;
+  window.showGameover = function(gs, winnerId) {
+    if (origShowGameover) origShowGameover.apply(this, arguments);
+    setTimeout(function() {
+      injectStatsSection();
+      // Populate stats for myId
+      if (!gameState || !myId) return;
+      const me = gameState.players?.[myId];
+      const opp2 = gameState.players?.[myId==='p1'?'p2':'p1'];
+      if (!me) return;
+      const myGoals = me.goals || 0;
+      const oppGoals = opp2?.goals || 0;
+      const maxGoals = Math.max(myGoals, oppGoals, 1);
+      // Attacks: estimate from turnCount
+      const totalTurns = gameState.turnCount || 0;
+      const myAtk = Math.round(totalTurns * 0.5);
+      const myDef = Math.round(totalTurns * 0.35);
+      const myCards = Math.round(totalTurns * 0.8);
+      const isWin = myGoals >= oppGoals;
+      function animStat(barId, valId, value, max, cls) {
+        const bar = document.getElementById(barId);
+        const val = document.getElementById(valId);
+        if (!bar || !val) return;
+        if (cls) bar.classList.add(cls);
+        val.textContent = value;
+        setTimeout(function(){
+          bar.style.width = Math.min(100, (value/max)*100) + '%';
+        }, 300);
+      }
+      animStat('stat-goals', 'stat-goals-val', myGoals, maxGoals, isWin?'win':'');
+      animStat('stat-atk',   'stat-atk-val',   myAtk,   Math.max(myAtk,1));
+      animStat('stat-def',   'stat-def-val',   myDef,   Math.max(myDef,1));
+      animStat('stat-cards', 'stat-cards-val', myCards, Math.max(myCards,1));
+    }, 100);
+  };
+})();
 </script>
 </body>
 </html>
