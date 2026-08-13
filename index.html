@@ -198,8 +198,22 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
 }
 .inp-code:focus{border-color:var(--g1)}
 .inp-code::placeholder{color:var(--t3);font-size:14px;letter-spacing:2px;font-family:'Cairo'}
+/* 4-box code entry */
+.code-boxes{display:flex;gap:8px;justify-content:center;margin-bottom:10px;}
+.code-box{width:46px;height:54px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:28px;color:rgba(255,255,255,.5);transition:all .2s;}
+.code-box.active{border-color:rgba(0,200,255,.55);background:rgba(0,200,255,.06);color:var(--cyan);box-shadow:0 0 0 3px rgba(0,200,255,.08);}
+.code-box.filled{border-color:rgba(255,255,255,.18);color:rgba(255,255,255,.75);}
+.code-cursor{animation:codeBlink .8s ease-in-out infinite;color:var(--cyan);font-size:20px;}
+@keyframes codeBlink{0%,100%{opacity:1}50%{opacity:0}}
 
 /* Mode picker — minimal, inside room screen */
+/* EA FC underline tab mode selector */
+.mode-tabs{display:flex;gap:0;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,.07);}
+.mode-tab{flex:1;padding:7px 0;text-align:center;font-size:9px;font-weight:700;color:rgba(255,255,255,.25);position:relative;cursor:pointer;background:none;border:none;font-family:'Cairo';}
+.mode-tab.sel{color:var(--g1);}
+.mode-tab.sel::after{content:'';position:absolute;bottom:-1px;left:15%;right:15%;height:2px;background:var(--g1);border-radius:1px;}
+.mode-tab-icon{display:block;font-size:13px;margin-bottom:2px;}
+/* keep old chips for compat */
 .mode-toggle{display:flex;gap:6px;margin-bottom:8px}
 .mode-chip{
   flex:1;padding:8px 6px;
@@ -223,6 +237,13 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
   transition:all .18s;
 }
 .tmode-btn.sel{border-color:rgba(0,200,255,.4);background:rgba(0,200,255,.08);color:var(--cyan)}
+.tmode-btn.sel-a{border-color:rgba(255,149,0,.4);background:rgba(255,149,0,.08);color:#FF9500;}
+.tmode-btn.sel-a::before,.tmode-btn.sel-b::before,.tmode-btn.sel-c::before{content:'';position:absolute;top:0;left:0;right:0;height:2.5px;border-radius:7px 7px 0 0;}
+.tmode-btn{position:relative;}
+.tmode-btn.sel-a::before{background:#FF9500;}
+.tmode-btn.sel-b::before{background:var(--cyan);}
+.tmode-btn.sel-c::before{background:var(--g1);}
+.tmode-btn.sel-c{border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.08);color:var(--g1);}
 .tmode-icon{display:block;font-size:14px;margin-bottom:2px}
 .tmode-label{display:block;font-size:9px;letter-spacing:.5px}
 /* VS heartbeat line */
@@ -330,6 +351,25 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
 .rmode-icon{font-size:16px;display:block;margin-bottom:3px}
 
 .room-actions{width:100%;display:flex;flex-direction:column;gap:8px}
+/* Crowd excitement bar */
+.crowd-bar-wrap{width:100%;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin:6px 0;}
+.crowd-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--cyan),rgba(0,200,255,.4));width:20%;transition:width 1.5s ease;}
+.crowd-bar.full{width:100%;background:linear-gradient(90deg,var(--g1),rgba(201,168,76,.5));}
+/* Shimmer start button */
+.btn-start-shimmer{
+  width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:900;
+  text-align:center;position:relative;overflow:hidden;color:#030508;
+  background:linear-gradient(135deg,#d4aa50,#9a7220,#c9a84c);
+  box-shadow:0 4px 20px rgba(201,168,76,.4);
+  border:none;font-family:'Cairo';cursor:pointer;
+}
+.btn-start-shimmer::after{content:'';position:absolute;top:0;left:-100%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);animation:shimmerBtn 2s ease infinite;}
+@keyframes shimmerBtn{0%{left:-100%}100%{left:200%}}
+/* VS word gold pulse when both ready */
+.vs-word.both-ready{color:var(--g1);text-shadow:0 0 20px rgba(201,168,76,.5);animation:vsGold 1s ease-in-out infinite;}
+@keyframes vsGold{0%,100%{text-shadow:0 0 8px rgba(201,168,76,.3)}50%{text-shadow:0 0 28px rgba(201,168,76,.65)}}
+/* P2 avatar glow when ready */
+.vsp-avatar.ready-opp{border-color:rgba(255,59,92,.5);box-shadow:0 0 14px rgba(255,59,92,.25);background:rgba(255,59,92,.06);}
 
 /* ════════════════════════════════
    GAME SCREEN
@@ -752,11 +792,24 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
 .broadcast.legend{border-bottom-color:rgba(201,168,76,.18)}
 
 /* Game over */
-.go-ico{font-size:64px;text-align:center;margin-bottom:8px}
+.go-ico{font-size:64px;text-align:center;margin-bottom:6px}
 .go-title{font-family:'Bebas Neue';font-size:32px;letter-spacing:2px;text-align:center;color:var(--g1)}
 .go-score{font-size:12px;color:var(--t3);text-align:center;margin-top:3px}
-.go-rule{width:48px;height:1px;background:linear-gradient(90deg,transparent,var(--g1),transparent);margin:14px auto}
-.go-clown{font-size:10px;color:var(--t3);text-align:center;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px}
+.go-rule{width:48px;height:1px;background:linear-gradient(90deg,transparent,var(--g1),transparent);margin:10px auto}
+.go-clown{font-size:10px;color:var(--t3);text-align:center;padding:6px 10px;background:rgba(255,255,255,.03);border-radius:8px}
+/* Post-match stats table */
+.pm-stats{width:100%;margin:10px 0 6px;}
+.pm-stat-table{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:9px;overflow:hidden;}
+.pm-stat-head{display:flex;justify-content:space-between;align-items:center;padding:5px 10px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.04);}
+.pm-stat-row{display:flex;align-items:center;padding:5px 10px;border-bottom:.5px solid rgba(255,255,255,.04);}
+.pm-stat-row:last-child{border-bottom:none;}
+.pm-my{font-size:9px;font-weight:700;min-width:24px;}
+.pm-opp{font-size:9px;color:rgba(255,255,255,.3);min-width:24px;text-align:right;}
+.pm-mid{flex:1;display:flex;flex-direction:column;gap:2px;padding:0 7px;}
+.pm-lbl{font-size:6.5px;color:rgba(255,255,255,.3);text-align:center;}
+.pm-bar-wrap{display:flex;gap:1px;height:3px;border-radius:1.5px;overflow:hidden;}
+.pm-bar-me{border-radius:1.5px;height:3px;transition:flex 1.2s cubic-bezier(.22,1,.36,1);}
+.pm-bar-opp{border-radius:1.5px;height:3px;transition:flex 1.2s cubic-bezier(.22,1,.36,1);}
 
 /* Toast */
 #toast{
@@ -982,12 +1035,12 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
     <div class="sheet-handle"></div>
     <input id="inp-name" class="inp-name" type="text" placeholder="اسمك هنا..." maxlength="16" autocomplete="off">
     <!-- Game mode toggle -->
-    <div class="mode-toggle">
-      <button class="mode-chip sel" id="mode-luck" onclick="selectMode('luck')">
-        <span class="mode-chip-icon">🎲</span>حظ
+    <div class="mode-tabs" id="lobby-mode-tabs">
+      <button class="mode-tab sel" id="mode-luck" onclick="selectMode('luck');setActiveTab(this)">
+        <span class="mode-tab-icon">🎲</span>حظ
       </button>
-      <button class="mode-chip" id="mode-strategy" onclick="selectMode('strategy')">
-        <span class="mode-chip-icon">🧠</span>استراتيجية
+      <button class="mode-tab" id="mode-strategy" onclick="selectMode('strategy');setActiveTab(this)">
+        <span class="mode-tab-icon">🧠</span>استراتيجية
       </button>
     </div>
     <!-- Tunnel / theme selector — default B -->
@@ -1011,8 +1064,17 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
       <button class="btn-link" onclick="toggleJoin()">انضم لغرفة موجودة</button>
     </div>
     <div class="join-expand" id="join-panel">
-      <div class="join-inner">
-        <input id="inp-code" class="inp-code" type="text" placeholder="ABCD" maxlength="4" autocomplete="off" oninput="this.value=this.value.toUpperCase()">
+      <div class="join-inner" style="flex-direction:column;gap:8px;padding-top:10px;">
+        <div style="font-size:9px;color:rgba(0,200,255,.5);text-align:center;letter-spacing:.5px;margin-bottom:2px;">أدخل كود الغرفة</div>
+        <div class="code-boxes" id="code-display">
+          <div class="code-box" id="cb0">—</div>
+          <div class="code-box" id="cb1">—</div>
+          <div class="code-box" id="cb2">—</div>
+          <div class="code-box" id="cb3">—</div>
+        </div>
+        <input id="inp-code" class="inp-code" type="text" placeholder="ABCD" maxlength="4" autocomplete="off" 
+          oninput="this.value=this.value.toUpperCase();updateCodeBoxes(this.value)"
+          style="text-align:center;letter-spacing:8px;">
         <button class="btn-cta" onclick="doJoin()">انضم</button>
       </div>
     </div>
@@ -1052,6 +1114,11 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
         </div>
       </div>
       <div class="vs-status" id="room-status">في انتظار اللاعب الثاني...</div>
+      <!-- Crowd excitement bar -->
+      <div style="width:100%;padding:0 12px;">
+        <div style="font-size:7px;color:rgba(255,255,255,.2);letter-spacing:2px;text-align:center;margin-bottom:3px;">إثارة الجمهور</div>
+        <div class="crowd-bar-wrap"><div class="crowd-bar" id="crowd-bar"></div></div>
+      </div>
     </div>
 
     <!-- TUNNEL MODE SELECTOR — 3 options, default B -->
@@ -1087,7 +1154,7 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
     </div>
 
     <div class="room-actions">
-      <button class="btn-cta hidden" id="btn-start" onclick="doStart()">🏁 ابدأ الماتش</button>
+      <button class="btn-start-shimmer hidden" id="btn-start" onclick="doStart()">ابدأ الماتش ⚡</button>
       <button class="btn-ghost" onclick="doLeave()">↩ خروج</button>
     </div>
   </div>
@@ -1234,8 +1301,38 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
     <div class="go-score" id="go-score"></div>
     <div class="go-rule"></div>
     <div class="go-clown hidden" id="go-clown"></div>
+    <!-- EA FC post-match stats -->
+    <div class="pm-stats">
+      <div class="pm-stat-table">
+        <div class="pm-stat-head">
+          <div style="font-size:8px;font-weight:700;" id="pm-head-me">أنت</div>
+          <div style="font-size:6px;color:rgba(255,255,255,.2);letter-spacing:2px;">الإحصائيات</div>
+          <div style="font-size:8px;color:rgba(255,255,255,.3);" id="pm-head-opp">خصم</div>
+        </div>
+        <div class="pm-stat-row">
+          <div class="pm-my" id="pm-goals-me" style="color:var(--cyan);">0</div>
+          <div class="pm-mid"><div class="pm-lbl">أهداف</div><div class="pm-bar-wrap"><div class="pm-bar-me" id="pm-bar-goals-me" style="flex:1;background:rgba(0,200,255,.55);"></div><div class="pm-bar-opp" id="pm-bar-goals-opp" style="flex:1;background:rgba(255,59,92,.35);"></div></div></div>
+          <div class="pm-opp" id="pm-goals-opp">0</div>
+        </div>
+        <div class="pm-stat-row">
+          <div class="pm-my" id="pm-atk-me" style="color:var(--cyan);">0</div>
+          <div class="pm-mid"><div class="pm-lbl">هجمات</div><div class="pm-bar-wrap"><div class="pm-bar-me" id="pm-bar-atk-me" style="flex:1;background:rgba(0,200,255,.5);"></div><div class="pm-bar-opp" id="pm-bar-atk-opp" style="flex:1;background:rgba(255,59,92,.3);"></div></div></div>
+          <div class="pm-opp" id="pm-atk-opp">0</div>
+        </div>
+        <div class="pm-stat-row">
+          <div class="pm-my" id="pm-def-me" style="color:var(--cyan);">0</div>
+          <div class="pm-mid"><div class="pm-lbl">دفاعات</div><div class="pm-bar-wrap"><div class="pm-bar-me" id="pm-bar-def-me" style="flex:1;background:rgba(0,200,255,.5);"></div><div class="pm-bar-opp" id="pm-bar-def-opp" style="flex:1;background:rgba(255,59,92,.3);"></div></div></div>
+          <div class="pm-opp" id="pm-def-opp">0</div>
+        </div>
+        <div class="pm-stat-row">
+          <div class="pm-my" id="pm-poss-me" style="color:var(--cyan);">50%</div>
+          <div class="pm-mid"><div class="pm-lbl">استحواذ</div><div class="pm-bar-wrap"><div class="pm-bar-me" id="pm-bar-poss-me" style="flex:1;background:rgba(0,200,255,.5);"></div><div class="pm-bar-opp" id="pm-bar-poss-opp" style="flex:1;background:rgba(255,59,92,.3);"></div></div></div>
+          <div class="pm-opp" id="pm-poss-opp">50%</div>
+        </div>
+      </div>
+    </div>
     <div class="ov-acts">
-      <button class="btn-cta" onclick="doRestart()">ماتش تاني</button>
+      <button class="btn-cta" onclick="doRestart()">ماتش جديد ⚡</button>
       <button class="btn-ghost" onclick="doLeave()">↩ خروج</button>
     </div>
   </div>
@@ -4644,6 +4741,300 @@ window.addEventListener('DOMContentLoaded',()=>{
     }, 100);
   };
 })();
+
+// ══════════════════════════════════════════════════════
+// FLICK REDESIGN SYSTEMS
+// ══════════════════════════════════════════════════════
+
+// ── 4-BOX CODE DISPLAY ──
+function updateCodeBoxes(val){
+  for(let i=0;i<4;i++){
+    const b=document.getElementById('cb'+i);
+    if(!b)continue;
+    b.className='code-box';
+    if(i<val.length){b.textContent=val[i];b.classList.add('filled');}
+    else if(i===val.length){b.innerHTML='<span class="code-cursor">|</span>';b.classList.add('active');}
+    else{b.textContent='—';}
+  }
+}
+
+// ── EA FC UNDERLINE TAB ──
+function setActiveTab(btn){
+  const tabs=btn.closest('.mode-tabs');
+  if(!tabs)return;
+  tabs.querySelectorAll('.mode-tab').forEach(t=>t.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+
+// ── TMODE COLORED TOP BARS ──
+const origSelectTunnelMode=window.selectTunnelMode;
+window.selectTunnelMode=function(mode){
+  if(origSelectTunnelMode)origSelectTunnelMode(mode);
+  // Update color classes on all tmode buttons
+  document.querySelectorAll('.tmode-btn').forEach(btn=>{
+    btn.classList.remove('sel','sel-a','sel-b','sel-c');
+  });
+  const selectors=['lobby-tmode-'+mode,'tmode-'+mode];
+  selectors.forEach(id=>{
+    const btn=document.getElementById(id);
+    if(btn){btn.classList.add('sel-'+mode);}
+  });
+};
+
+// ── CROWD EXCITEMENT BAR ──
+// Grows as both players connect, maxes when both ready
+function updateCrowdBar(){
+  const bar=document.getElementById('crowd-bar');
+  if(!bar)return;
+  const gs=gameState;
+  if(!gs||!gs.players)return;
+  const p1=gs.players.p1;
+  const p2=gs.players.p2;
+  const bothConnected=p1&&p2;
+  const bothReady=bothConnected&&gs.phase!=='waiting';
+  if(bothReady){bar.className='crowd-bar full';}
+  else if(bothConnected){bar.style.width='65%';bar.classList.remove('full');}
+  else{bar.style.width='20%';bar.classList.remove('full');}
+}
+
+// ── VS PANEL GOLD PULSE when both ready ──
+function updateVSReady(){
+  const vsWord=document.querySelector('.vs-word');
+  const ava2=document.getElementById('ava-p2');
+  if(!vsWord||!ava2)return;
+  const gs=gameState;
+  const bothHere=gs&&gs.players&&gs.players.p1&&gs.players.p2;
+  if(bothHere){
+    vsWord.classList.add('both-ready');
+    ava2.classList.add('ready','ready-opp');
+    ava2.textContent='👤';
+  }else{
+    vsWord.classList.remove('both-ready');
+    ava2.classList.remove('ready-opp');
+  }
+}
+
+// Hook into syncUI to trigger crowd bar + vs updates
+const _origSyncUI2=window.syncUI;
+window.syncUI=function(prev){
+  if(_origSyncUI2)_origSyncUI2.apply(this,arguments);
+  try{updateCrowdBar();}catch(e){}
+  try{updateVSReady();}catch(e){}
+};
+
+// ── UPGRADED showGameOver WITH EA FC STATS ──
+const _origShowGameOver=window.showGameOver;
+window.showGameOver=function(){
+  if(_origShowGameOver)_origShowGameOver.apply(this,arguments);
+  try{
+    const gs=gameState;
+    if(!gs||!myId)return;
+    const iWon=(gs.winner||'')=== myId;
+    // Scores
+    const myGoals=gs.players?.[myId]?.goals||0;
+    const oi=myId==='p1'?'p2':'p1';
+    const oppGoals=gs.players?.[oi]?.goals||0;
+    // Attacks — approximate from attack chain turns
+    const totalTurns=gs.turnCount||0;
+    const myAtk=Math.max(myGoals,Math.round(totalTurns*0.45));
+    const oppAtk=Math.max(oppGoals,Math.round(totalTurns*0.45));
+    const myDef=Math.round(totalTurns*0.35);
+    const oppDef=Math.round(totalTurns*0.35);
+    // Possession — rough from goals ratio
+    const totalGoals=myGoals+oppGoals||1;
+    const myPoss=Math.round((myGoals/totalGoals)*100*0.4+50*0.6);
+    const oppPoss=100-myPoss;
+    // Colors
+    const myCol=iWon?'var(--cyan)':'rgba(255,255,255,.35)';
+    const oppCol=iWon?'rgba(255,255,255,.3)':'var(--atk)';
+    const myBarGoal=iWon?'rgba(0,200,255,.6)':'rgba(255,255,255,.25)';
+    const oppBarGoal=iWon?'rgba(255,59,92,.35)':'rgba(255,59,92,.6)';
+    // Header names
+    const me2=gs.players?.[myId];
+    const op2=gs.players?.[oi];
+    const pmHMe=document.getElementById('pm-head-me');
+    const pmHOpp=document.getElementById('pm-head-opp');
+    if(pmHMe)pmHMe.textContent=me2?.name||'أنت';
+    if(pmHOpp){pmHOpp.textContent=op2?.name||'خصم';pmHOpp.style.color=oppCol;}
+    // Fill stats
+    function setStat(meId,oppId,bMeId,bOppId,meV,oppV,meBg,oppBg){
+      const meEl=document.getElementById(meId);
+      const oppEl=document.getElementById(oppId);
+      const bMe=document.getElementById(bMeId);
+      const bOpp=document.getElementById(bOppId);
+      if(meEl){meEl.textContent=meV;meEl.style.color=myCol;}
+      if(oppEl){oppEl.textContent=oppV;oppEl.style.color=oppCol;}
+      if(bMe&&bOpp){
+        const total=meV+oppV||1;
+        setTimeout(()=>{
+          bMe.style.flex=meV;bMe.style.background=meBg;
+          bOpp.style.flex=oppV;bOpp.style.background=oppBg;
+        },200);
+      }
+    }
+    setStat('pm-goals-me','pm-goals-opp','pm-bar-goals-me','pm-bar-goals-opp',myGoals,oppGoals,myBarGoal,oppBarGoal);
+    setStat('pm-atk-me','pm-atk-opp','pm-bar-atk-me','pm-bar-atk-opp',myAtk,oppAtk,'rgba(0,200,255,.5)','rgba(255,59,92,.3)');
+    setStat('pm-def-me','pm-def-opp','pm-bar-def-me','pm-bar-def-opp',myDef,oppDef,'rgba(0,200,255,.5)','rgba(255,59,92,.3)');
+    // Possession as %
+    const pmPMe=document.getElementById('pm-poss-me');
+    const pmPOpp=document.getElementById('pm-poss-opp');
+    const bPMe=document.getElementById('pm-bar-poss-me');
+    const bPOpp=document.getElementById('pm-bar-poss-opp');
+    if(pmPMe){pmPMe.textContent=myPoss+'%';pmPMe.style.color=myCol;}
+    if(pmPOpp){pmPOpp.textContent=oppPoss+'%';pmPOpp.style.color=oppCol;}
+    if(bPMe&&bPOpp){
+      setTimeout(()=>{
+        bPMe.style.flex=myPoss;bPMe.style.background='rgba(0,200,255,.5)';
+        bPOpp.style.flex=oppPoss;bPOpp.style.background='rgba(255,59,92,.3)';
+      },200);
+    }
+    // Update go-title for full-time style
+    const titleEl=document.getElementById('go-title');
+    const scoreEl=document.getElementById('go-score');
+    if(titleEl)titleEl.textContent=iWon?`فُزت! 🏆`:`خسرت 😔`;
+    if(titleEl)titleEl.style.color=iWon?'var(--g1)':'var(--atk)';
+    if(scoreEl)scoreEl.textContent=`${myGoals} : ${oppGoals} — FULL TIME`;
+  }catch(e){console.log('stats error',e);}
+};
+
+// ── DRAW ANIMATION ──
+// Card flies from deck with real FLICK shield, flips mid-air, lands
+(function(){
+  let lastDeckLen=null;
+  const _origSyncUI3=window.syncUI;
+  window.syncUI=function(prev){
+    if(_origSyncUI3)_origSyncUI3.apply(this,arguments);
+    const gs=gameState;
+    const newLen=gs?.deck?.length??null;
+    if(lastDeckLen!==null&&newLen!==null&&newLen<lastDeckLen){
+      fireDrawAnimation();
+    }
+    lastDeckLen=newLen;
+  };
+
+  const SHIELD_SVG=`<svg viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;position:absolute;inset:0;">
+    <defs>
+      <linearGradient id="da-g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#E8C96A"/><stop offset="100%" stop-color="#C9A84C"/></linearGradient>
+      <linearGradient id="da-c" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#60E8FF"/><stop offset="100%" stop-color="#00C8FF"/></linearGradient>
+      <linearGradient id="da-bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0c1628"/><stop offset="100%" stop-color="#030508"/></linearGradient>
+      <clipPath id="da-cl"><path d="M 110 6 L 196 26 L 196 110 Q 196 169 110 210 Q 24 169 24 110 L 24 26 Z"/></clipPath>
+    </defs>
+    <path d="M 110 6 L 196 26 L 196 110 Q 196 169 110 210 Q 24 169 24 110 L 24 26 Z" fill="url(#da-bg)" stroke="url(#da-g)" stroke-width="3"/>
+    <g clip-path="url(#da-cl)">
+      <rect x="24" y="122" width="172" height="3" fill="url(#da-c)" opacity="0.9"/>
+      <polygon points="110,116 115,122 110,128 105,122" fill="#00C8FF" opacity="0.9"/>
+      <text x="110" y="162" text-anchor="middle" font-family="Bebas Neue,sans-serif" font-size="38" letter-spacing="6" fill="url(#da-g)">FLICK</text>
+    </g>
+  </svg>`;
+
+  function fireDrawAnimation(){
+    const deckEl=document.getElementById('deck-stack');
+    const handEl=document.getElementById('my-hand');
+    if(!deckEl||!handEl)return;
+    const dR=deckEl.getBoundingClientRect();
+    const hR=handEl.getBoundingClientRect();
+    const sx=dR.left+dR.width/2-21, sy=dR.top+dR.height/2-30;
+    const ex=hR.right-56, ey=hR.top+8;
+    const mx=(sx+ex)/2, my=Math.min(sy,ey)-70;
+
+    // Flying card element
+    const card=document.createElement('div');
+    card.style.cssText=`position:fixed;z-index:9999;pointer-events:none;
+      width:42px;height:60px;border-radius:7px;
+      background:linear-gradient(145deg,#060c18,#03080f);
+      border:1.5px solid rgba(201,168,76,.65);
+      overflow:hidden;
+      box-shadow:0 8px 24px rgba(0,200,255,.3);
+      left:${sx}px;top:${sy}px;
+      transition:none;`;
+    card.innerHTML=SHIELD_SVG;
+    document.body.appendChild(card);
+
+    // Cyan ring
+    const ring=document.createElement('div');
+    ring.style.cssText=`position:fixed;z-index:9998;pointer-events:none;
+      width:54px;height:54px;border-radius:50%;
+      border:2px solid rgba(0,200,255,.65);
+      left:${sx-6}px;top:${sy-6}px;
+      transition:none;`;
+    document.body.appendChild(ring);
+
+    // Animate
+    const start=performance.now();
+    const dur=520;
+    function step(now){
+      const t=Math.min(1,(now-start)/dur);
+      const ease=t<.5?2*t*t:(1-Math.pow(-2*t+2,2)/2);
+      // Arc path: sx→mx→ex, sy→my→ey
+      const x=t<.5?sx+(mx-sx)*ease*2:(mx+(ex-mx)*(ease*2-1));
+      const y=t<.5?sy+(my-sy)*ease*2:(my+(ey-my)*(ease*2-1));
+      const rot=t*360-15;
+      const sc=1+Math.sin(t*Math.PI)*0.1;
+      card.style.left=x+'px';
+      card.style.top=y+'px';
+      card.style.transform=`rotate(${rot}deg) scale(${sc})`;
+      card.style.opacity=t>0.85?(1-(t-0.85)/0.15)+'':'1';
+      // Ring follows
+      ring.style.left=(x-6)+'px';
+      ring.style.top=(y-6)+'px';
+      ring.style.opacity=t>0.7?(1-(t-0.7)/0.3)*0.7+'':'0.7';
+      ring.style.transform=`scale(${1+t*0.6})`;
+      if(t<1)requestAnimationFrame(step);
+      else{
+        card.remove();ring.remove();
+        // Flash newest hand card
+        const cards=document.querySelectorAll('#my-hand .card');
+        if(cards.length){
+          const last=cards[cards.length-1];
+          last.style.transition='transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .3s';
+          last.style.transform+=' translateY(-16px) scale(1.1)';
+          last.style.boxShadow='0 8px 20px rgba(201,168,76,.45)';
+          setTimeout(()=>{last.style.transform='';last.style.boxShadow='';},400);
+        }
+        // Gold flash
+        const flash=document.createElement('div');
+        flash.style.cssText=`position:fixed;z-index:9997;pointer-events:none;
+          left:${ex-20}px;top:${ey-10}px;
+          width:50px;height:50px;border-radius:50%;
+          background:radial-gradient(circle,rgba(201,168,76,.4),transparent 70%);
+          animation:da-impact .4s ease-out forwards;`;
+        document.body.appendChild(flash);
+        setTimeout(()=>flash.remove(),500);
+        // Trail dots (cleanup)
+        trailDots.forEach(d=>d.remove());
+      }
+    }
+
+    // Trail dots
+    const trailDots=[];
+    for(let i=0;i<4;i++){
+      setTimeout(()=>{
+        const dot=document.createElement('div');
+        const progress=i/4;
+        const dx=sx+(ex-sx)*progress, dy=sy+(ey-sy)*progress-30;
+        dot.style.cssText=`position:fixed;z-index:9996;pointer-events:none;
+          width:${5-i}px;height:${5-i}px;border-radius:50%;
+          background:rgba(0,200,255,${0.7-i*0.15});
+          left:${dx}px;top:${dy}px;
+          animation:da-trail .5s ease-out forwards;`;
+        document.body.appendChild(dot);
+        trailDots.push(dot);
+        setTimeout(()=>dot.remove(),600);
+      },i*60);
+    }
+
+    requestAnimationFrame(step);
+  }
+
+  // CSS for draw animation
+  const s=document.createElement('style');
+  s.textContent=`
+@keyframes da-impact{0%{transform:scale(0.3);opacity:1}100%{transform:scale(2.5);opacity:0}}
+@keyframes da-trail{to{transform:scale(0);opacity:0}}
+  `;
+  document.head.appendChild(s);
+})();
+
 </script>
 </body>
 </html>
