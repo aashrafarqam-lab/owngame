@@ -7,7 +7,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#030508">
 <title>FLICK — Street Football</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════
    DOBLA — PREMIUM GROUND-UP REBUILD
@@ -857,7 +859,7 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
 <canvas id="world-canvas"></canvas>
 
 <!-- ══ LOADING ══ -->
-<div id="s-loading" class="screen">
+<div id="s-loading" class="screen" style="display:flex;">
   <div class="load-beam"></div>
   <div class="load-logo-wrap">
     <svg class="flick-shield" style="width:min(55vw,200px);animation:shieldEntry .8s ease .7s both" viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg">
@@ -2854,8 +2856,11 @@ if (typeof window !== 'undefined') window.OwnGoalEngine = OwnGoalEngine;
 </script>
 
 <script type="module">
-import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import{getDatabase,ref,get,set,update,remove,onValue,runTransaction}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+// Load Firebase — non-blocking. Loading screen shows while this downloads.
+const [{initializeApp},{getDatabase,ref,get,set,update,remove,onValue,runTransaction}]=await Promise.all([
+  import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'),
+  import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js')
+]);
 
 // ── YOUR FIREBASE CONFIG ──
 // Replace these values with your project's config from Firebase Console:
@@ -4254,249 +4259,12 @@ window.addEventListener('DOMContentLoaded',()=>{
   setTimeout(()=>{
     WorldCanvas.setState('lobby');
     showScreen('lobby');
-  },2000);
+  },400);
 });
 
-// ══════════════════════════════════════════════════════
-// DIRECTION 02 — THE DRAW ANIMATION
-// Card physically flies from deck to hand on draw
-// ══════════════════════════════════════════════════════
-(function(){
-  // Inject CSS
-  const style = document.createElement('style');
-  style.textContent = `
-@keyframes drawFly {
-  0%   { transform: translate(0,0) rotate(0deg) scale(1); opacity:1; }
-  40%  { transform: translate(var(--dx2),var(--dy2)) rotate(180deg) scale(1.12); opacity:1; }
-  100% { transform: translate(var(--dxf),var(--dyf)) rotate(360deg) scale(0.85); opacity:0; }
-}
-@keyframes cardRevealFlash {
-  0%   { opacity:0; transform:scale(0.7) translateY(8px); }
-  60%  { opacity:1; transform:scale(1.12) translateY(-6px); }
-  100% { opacity:1; transform:scale(1) translateY(0); }
-}
-.draw-fly-card {
-  position:fixed; z-index:9999; pointer-events:none;
-  width:44px; height:62px; border-radius:8px;
-  background:linear-gradient(145deg,#060c18,#03080f);
-  border:1.5px solid rgba(201,168,76,.65);
-  animation: drawFly 0.5s cubic-bezier(.4,0,.2,1) forwards;
-}
-.draw-fly-card::after {
-  content:'';position:absolute;inset:0;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 260'%3E%3Cdefs%3E%3ClinearGradient id='fly_g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23E8C96A'/%3E%3Cstop offset='100%25' stop-color='%23C9A84C'/%3E%3C/linearGradient%3E%3CclipPath id='fly_c'%3E%3Cpath d='M110 6L196 26L196 110Q196 169 110 210Q24 169 24 110L24 26Z'/%3E%3C/clipPath%3E%3C/defs%3E%3Cpath d='M110 6L196 26L196 110Q196 169 110 210Q24 169 24 110L24 26Z' fill='%23060c18' stroke='url(%23fly_g)' stroke-width='3'/%3E%3Cg clip-path='url(%23fly_c)'%3E%3Crect x='24' y='122' width='172' height='3' fill='%2300C8FF' opacity='0.9'/%3E%3Ctext x='110' y='162' text-anchor='middle' font-family='sans-serif' font-size='36' letter-spacing='5' fill='%23C9A84C'%3EFLICK%3C/text%3E%3C/g%3E%3C/svg%3E") center/72% no-repeat;
-}
-.draw-flash-pulse {
-  position:fixed;z-index:9998;pointer-events:none;
-  width:60px;height:60px;border-radius:50%;
-  border:2px solid rgba(0,200,255,.7);
-  animation:pulseRing .5s ease-out forwards;
-}
-@keyframes pulseRing {
-  0%   { transform:scale(0.5); opacity:.8; }
-  100% { transform:scale(2.5); opacity:0; }
-}
-.hand-card-new {
-  animation: cardRevealFlash 0.4s cubic-bezier(.34,1.56,.64,1) forwards;
-}
-`;
-  document.head.appendChild(style);
 
-  // Intercept the deck-count update to trigger animation
-  const origSync = window.syncUI;
-  let lastDeckCount = null;
-  if (origSync) {
-    window.syncUI = function(prev) {
-      const gs = gameState;
-      const newCount = (gs && gs.deck) ? gs.deck.length : null;
-      if (lastDeckCount !== null && newCount !== null && newCount < lastDeckCount) {
-        triggerDrawAnimation();
-      }
-      lastDeckCount = newCount;
-      origSync.apply(this, arguments);
-    };
-  }
 
-  function triggerDrawAnimation() {
-    const deckEl = document.getElementById('deck-stack');
-    const handEl = document.getElementById('my-hand');
-    if (!deckEl || !handEl) return;
-    const deckR = deckEl.getBoundingClientRect();
-    const handR = handEl.getBoundingClientRect();
-    const sx = deckR.left + deckR.width/2 - 22;
-    const sy = deckR.top + deckR.height/2 - 31;
-    const fx = handR.left + handR.width - 60;
-    const fy = handR.top + 10;
-    const mx = (sx + fx)/2 - 22;
-    const my = Math.min(sy, fy) - 80;
-    const card = document.createElement('div');
-    card.className = 'draw-fly-card';
-    card.style.left = sx + 'px';
-    card.style.top  = sy + 'px';
-    card.style.setProperty('--dx2', (mx - sx) + 'px');
-    card.style.setProperty('--dy2', (my - sy) + 'px');
-    card.style.setProperty('--dxf', (fx - sx) + 'px');
-    card.style.setProperty('--dyf', (fy - sy) + 'px');
-    document.body.appendChild(card);
-    // Pulse ring at midpoint
-    setTimeout(function() {
-      const ring = document.createElement('div');
-      ring.className = 'draw-flash-pulse';
-      ring.style.left = (mx + 8) + 'px';
-      ring.style.top  = (my + 8) + 'px';
-      document.body.appendChild(ring);
-      setTimeout(function(){ring.remove();}, 600);
-    }, 200);
-    setTimeout(function() {
-      card.remove();
-      // Flash newest hand card
-      const cards = document.querySelectorAll('#my-hand .card');
-      if (cards.length) {
-        const last = cards[cards.length - 1];
-        last.classList.add('hand-card-new');
-        setTimeout(function(){last.classList.remove('hand-card-new');}, 500);
-      }
-    }, 520);
-  }
-})();
 
-// ══════════════════════════════════════════════════════
-// DIRECTION 01 — LIVING COUNTDOWN
-// Deck stack shrinks + changes color as cards deplete
-// ══════════════════════════════════════════════════════
-(function(){
-  const style = document.createElement('style');
-  style.textContent = `
-.ds-stack[data-count="low"] .ds-card { border-color:rgba(255,149,0,.5)!important; }
-.ds-stack[data-count="low"] .ds-count { color:#FF9500!important; border-color:rgba(255,149,0,.35)!important; }
-.ds-stack[data-count="danger"] .ds-card { border-color:rgba(255,59,92,.6)!important; }
-.ds-stack[data-count="danger"] .ds-count { color:#FF3B5C!important; border-color:rgba(255,59,92,.4)!important; animation:dangerPulse .8s ease-in-out infinite; }
-@keyframes dangerPulse { 0%,100%{box-shadow:0 0 4px rgba(255,59,92,.1)} 50%{box-shadow:0 0 12px rgba(255,59,92,.5)} }
-.deck-danger-ring {
-  position:absolute;inset:-3px;border-radius:10px;
-  border:1.5px solid rgba(255,59,92,.5);
-  animation:dangerPulse .8s ease-in-out infinite;
-  pointer-events:none;
-}
-`;
-  document.head.appendChild(style);
-
-  // Hook into the deck-count update
-  const origSetText = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent') && Object.getOwnPropertyDescriptor(Node.prototype, 'textContent').set;
-  // Instead, observe deck-count element changes
-  const obs = new MutationObserver(function() {
-    updateDeckState();
-  });
-  function attachObs() {
-    const el = document.getElementById('deck-count');
-    if (el) {
-      obs.observe(el, {childList:true, characterData:true, subtree:true});
-      updateDeckState();
-    } else {
-      setTimeout(attachObs, 500);
-    }
-  }
-  attachObs();
-
-  function updateDeckState() {
-    const countEl = document.getElementById('deck-count');
-    const stackEl = document.getElementById('deck-stack');
-    if (!countEl || !stackEl) return;
-    const count = parseInt(countEl.textContent) || 0;
-    // Remove existing state
-    stackEl.removeAttribute('data-count');
-    const ring = stackEl.querySelector('.deck-danger-ring');
-    if (ring) ring.remove();
-    // Adjust visual stack height based on count
-    const cards = stackEl.querySelectorAll('.ds-card');
-    if (count <= 3) {
-      stackEl.setAttribute('data-count', 'danger');
-      cards.forEach(function(c,i){
-        c.style.height = Math.max(16, 53 - (3-i)*4) + 'px';
-      });
-      // Add pulse ring
-      const r = document.createElement('div');
-      r.className = 'deck-danger-ring';
-      stackEl.appendChild(r);
-    } else if (count <= 8) {
-      stackEl.setAttribute('data-count', 'low');
-      cards.forEach(function(c,i){
-        c.style.height = Math.max(28, 53 - (8-count)*2 - i*2) + 'px';
-      });
-    } else if (count <= 14) {
-      cards.forEach(function(c,i){
-        c.style.height = Math.max(36, 53 - (14-count) - i*2) + 'px';
-      });
-    } else {
-      cards.forEach(function(c){c.style.height = '';});
-    }
-    // Red heartbeat on broadcast bar when count <= 5
-    const bcBar = document.getElementById('scorebar');
-    if (bcBar) {
-      if (count <= 5 && count > 0) {
-        bcBar.classList.add('bc-tension');
-      } else {
-        bcBar.classList.remove('bc-tension');
-      }
-    }
-  }
-})();
-
-// ══════════════════════════════════════════════════════
-// TENSION STATE — heartbeat + red vignette when low deck
-// ══════════════════════════════════════════════════════
-(function(){
-  const style = document.createElement('style');
-  style.textContent = `
-#tension-hb {
-  position:fixed;top:0;left:0;right:0;height:2px;z-index:10000;pointer-events:none;overflow:hidden;
-  display:none;
-}
-#tension-hb-line {
-  height:100%;width:200%;
-  background:linear-gradient(90deg,transparent 10%,rgba(255,59,92,.9) 11%,transparent 12%,rgba(255,59,92,.5) 13%,transparent 14%,transparent 40%,rgba(255,59,92,.7) 41%,transparent 42%);
-  animation:hbScroll .9s linear infinite;
-}
-@keyframes hbScroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
-#tension-vignette {
-  position:fixed;inset:0;pointer-events:none;z-index:9990;
-  background:radial-gradient(ellipse at 50% 50%,transparent 50%,rgba(255,30,30,.08) 100%);
-  display:none;
-  animation:vigPulse .9s ease-in-out infinite;
-}
-@keyframes vigPulse { 0%,100%{opacity:0} 50%{opacity:1} }
-.bc-tension { border-bottom-color:rgba(255,59,92,.5)!important; }
-.bc-tension #sb-myscore, .bc-tension #sb-oppscore { color:#FF3B5C!important; }
-`;
-  document.head.appendChild(style);
-
-  // Inject tension elements
-  const hb = document.createElement('div');
-  hb.id = 'tension-hb';
-  hb.innerHTML = '<div id="tension-hb-line"></div>';
-  document.body.appendChild(hb);
-
-  const vig = document.createElement('div');
-  vig.id = 'tension-vignette';
-  document.body.appendChild(vig);
-
-  // Watch deck count
-  function checkTension() {
-    const el = document.getElementById('deck-count');
-    if (!el) return;
-    const count = parseInt(el.textContent) || 99;
-    const on = count <= 5 && count > 0;
-    document.getElementById('tension-hb').style.display = on ? 'block' : 'none';
-    document.getElementById('tension-vignette').style.display = on ? 'block' : 'none';
-  }
-  const obs = new MutationObserver(checkTension);
-  function attachTension() {
-    const el = document.getElementById('deck-count');
-    if (el) obs.observe(el, {childList:true,characterData:true,subtree:true});
-    else setTimeout(attachTension, 600);
-  }
-  attachTension();
-})();
 
 // ══════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════
