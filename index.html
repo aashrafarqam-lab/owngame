@@ -484,13 +484,18 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
 .ds-stack{position:relative;width:38px;height:55px}
 .ds-card{
   position:absolute;width:36px;height:53px;border-radius:7px;
-  background:linear-gradient(155deg,#0d2510,#081508);
-  border:1px solid rgba(201,168,76,.15);
+  background:linear-gradient(145deg,#060c18,#030810);
+  border:1px solid rgba(201,168,76,.2);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
 }
 .ds-card:nth-child(1){bottom:0;right:0}
-.ds-card:nth-child(2){bottom:2px;right:2px;opacity:.6;transform:rotate(-2deg)}
-.ds-card:nth-child(3){bottom:4px;right:4px;opacity:.35;transform:rotate(-4deg)}
-.ds-card::after{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 260'%3E%3Cdefs%3E%3ClinearGradient id='sg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23E8C96A'/%3E%3Cstop offset='100%25' stop-color='%23C9A84C'/%3E%3C/linearGradient%3E%3CclipPath id='sc'%3E%3Cpath d='M110 6L196 26L196 110Q196 169 110 210Q24 169 24 110L24 26Z'/%3E%3C/clipPath%3E%3C/defs%3E%3Cpath d='M110 6L196 26L196 110Q196 169 110 210Q24 169 24 110L24 26Z' fill='%23060c18' stroke='url(%23sg)' stroke-width='3'/%3E%3Cg clip-path='url(%23sc)'%3E%3Crect x='24' y='122' width='172' height='3' fill='%2300C8FF' opacity='0.9'/%3E%3Ctext x='110' y='162' text-anchor='middle' font-family='sans-serif' font-size='36' letter-spacing='5' fill='%23C9A84C'%3EFLICK%3C/text%3E%3C/g%3E%3C/svg%3E") center/65% no-repeat;}
+.ds-card:nth-child(2){bottom:2px;right:2px;opacity:.55;transform:rotate(-2deg)}
+.ds-card:nth-child(3){bottom:4px;right:4px;opacity:.3;transform:rotate(-4deg)}
+.ds-card .card-back-shield{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+/* Top/bottom cyan stripes on card back */
+.ds-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,200,255,.45),transparent);z-index:1;}
+.ds-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,200,255,.45),transparent);z-index:1;}
 .ds-count{
   position:absolute;top:-8px;right:-8px;
   width:18px;height:18px;border-radius:50%;
@@ -679,12 +684,14 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
 .cback{
   width:38px;height:55px;border-radius:7px;flex-shrink:0;
   position:relative;overflow:hidden;
-  background:linear-gradient(160deg,#0d2510 0%,#081508 60%,#061006 100%);
-  border:1px solid rgba(201,168,76,.15);
+  background:linear-gradient(145deg,#060c18,#030810);
+  border:1px solid rgba(201,168,76,.2);
   box-shadow:0 2px 8px rgba(0,0,0,.6);
+  display:flex;align-items:center;justify-content:center;
 }
-.cback::before{content:'';position:absolute;inset:3px;border:0.5px solid rgba(201,168,76,.12);border-radius:4px;background:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(201,168,76,.04) 3px,rgba(201,168,76,.04) 4px)}
-.cback::after{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 260'%3E%3Cdefs%3E%3ClinearGradient id='sg2' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23E8C96A'/%3E%3Cstop offset='100%25' stop-color='%23C9A84C'/%3E%3C/linearGradient%3E%3CclipPath id='sc2'%3E%3Cpath d='M110 6L196 26L196 110Q196 169 110 210Q24 169 24 110L24 26Z'/%3E%3C/clipPath%3E%3C/defs%3E%3Cpath d='M110 6L196 26L196 110Q196 169 110 210Q24 169 24 110L24 26Z' fill='%23060c18' stroke='url(%23sg2)' stroke-width='3'/%3E%3Cg clip-path='url(%23sc2)'%3E%3Crect x='24' y='122' width='172' height='3' fill='%2300C8FF' opacity='0.9'/%3E%3Ctext x='110' y='162' text-anchor='middle' font-family='sans-serif' font-size='36' letter-spacing='5' fill='%23C9A84C'%3EFLICK%3C/text%3E%3C/g%3E%3C/svg%3E") center/70% no-repeat;}
+.cback::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,200,255,.4),transparent);z-index:1;}
+.cback::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,200,255,.4),transparent);z-index:1;}
+.cback .card-back-shield{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
 
 /* Slot card (played on pitch) */
 .slot-card{
@@ -4745,6 +4752,47 @@ window.addEventListener('DOMContentLoaded',()=>{
 // ══════════════════════════════════════════════════════
 // FLICK REDESIGN SYSTEMS
 // ══════════════════════════════════════════════════════
+
+
+// ── REAL SHIELD INJECTOR ──
+// Injects inline SVG into all card backs (ds-card, cback)
+const FLICK_SHIELD_SVG = `<svg viewBox="0 0 220 260" xmlns="http://www.w3.org/2000/svg" style="width:85%;height:85%;display:block;">
+  <defs>
+    <linearGradient id="cbg1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFF0A0"/><stop offset="30%" stop-color="#E8C96A"/><stop offset="65%" stop-color="#C9A84C"/><stop offset="100%" stop-color="#7a5c18"/></linearGradient>
+    <linearGradient id="cbg2" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#E8C96A"/><stop offset="100%" stop-color="#9a7220"/></linearGradient>
+    <linearGradient id="cbc" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#60E8FF"/><stop offset="50%" stop-color="#00C8FF"/><stop offset="100%" stop-color="#0070A0"/></linearGradient>
+    <linearGradient id="cbbg" x1="20%" y1="0%" x2="80%" y2="100%"><stop offset="0%" stop-color="#0c1628"/><stop offset="40%" stop-color="#060c18"/><stop offset="100%" stop-color="#030508"/></linearGradient>
+    <clipPath id="cbcl"><path d="M 110 6 L 196 26 L 196 110 Q 196 169 110 210 Q 24 169 24 110 L 24 26 Z"/></clipPath>
+  </defs>
+  <path d="M 110 6 L 196 26 L 196 110 Q 196 169 110 210 Q 24 169 24 110 L 24 26 Z" fill="url(#cbbg)" stroke="url(#cbg1)" stroke-width="2.5"/>
+  <g clip-path="url(#cbcl)">
+    <rect x="24" y="122" width="172" height="2" fill="url(#cbc)" opacity="0.9"/>
+    <rect x="24" y="118" width="172" height="8" fill="rgba(0,200,255,0.08)"/>
+    <polygon points="110,115 116,123 110,131 104,123" fill="#00C8FF" opacity="0.85"/>
+    <polygon points="110,118 114,123 110,128 106,123" fill="#030810"/>
+    <text x="110" y="162" text-anchor="middle" font-family="Bebas Neue,sans-serif" font-size="38" letter-spacing="6" fill="url(#cbg1)">FLICK</text>
+    <text x="110" y="177" text-anchor="middle" font-family="sans-serif" font-size="6" letter-spacing="4" fill="rgba(0,200,255,0.55)">STREET FOOTBALL</text>
+    <g transform="translate(74,196)"><polygon points="0,-5 1.5,-1.8 5.2,-1.8 2.2,0.9 3.4,4.6 0,2.1 -3.4,4.6 -2.2,0.9 -5.2,-1.8 -1.5,-1.8" fill="url(#cbg2)" opacity="0.85"/></g>
+    <polygon points="110,188 114,194 110,200 106,194" fill="#00C8FF" opacity="0.8"/>
+    <g transform="translate(146,196)"><polygon points="0,-5 1.5,-1.8 5.2,-1.8 2.2,0.9 3.4,4.6 0,2.1 -3.4,4.6 -2.2,0.9 -5.2,-1.8 -1.5,-1.8" fill="url(#cbg2)" opacity="0.85"/></g>
+  </g>
+  <path d="M 110 6 L 196 26 L 196 110 Q 196 169 110 210 Q 24 169 24 110 L 24 26 Z" fill="none" stroke="url(#cbg1)" stroke-width="2.2"/>
+</svg>`;
+
+function injectShieldsIntoCardBacks(){
+  document.querySelectorAll('.ds-card,.cback').forEach(el=>{
+    if(el.querySelector('.card-back-shield'))return;
+    const wrap=document.createElement('div');
+    wrap.className='card-back-shield';
+    wrap.innerHTML=FLICK_SHIELD_SVG;
+    el.appendChild(wrap);
+  });
+}
+
+// Observe DOM for new card backs
+const _shieldObs=new MutationObserver(()=>injectShieldsIntoCardBacks());
+_shieldObs.observe(document.body,{childList:true,subtree:true});
+setTimeout(injectShieldsIntoCardBacks,100);
 
 // ── 4-BOX CODE DISPLAY ──
 function updateCodeBoxes(val){
