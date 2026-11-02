@@ -3104,6 +3104,14 @@ function syncUI(prev){
 
   // ── ACTIVE GAME ──
   if(phase!=='waiting'){
+    // An attacker with no attack card can never move: repair the hand (idempotent transaction)
+    if(phase==='attack'&&gameState.attacker===myId&&!window._ensuringAtk){
+      const hh=gameState.players?.[myId]?.hand||[];
+      if(!hh.some(c=>c.type==='attack')){
+        window._ensuringAtk=true;
+        applyEnsureAttack().catch(()=>{}).finally(()=>setTimeout(()=>{window._ensuringAtk=false;},700));
+      }
+    }
     TunnelSystem.stop();
     showScreen('game');
     if(typeof WorldCanvas!=='undefined')WorldCanvas.setState('game');
@@ -3155,6 +3163,7 @@ function syncUI(prev){
 function renderGameUI(){
   const gs=gameState;
   if(!gs||!myId)return;
+  const phase=gs.phase;
   const oi=oppId();
   const myPlayer=gs.players?.[myId];
   const oppPlayer=gs.players?.[oi];
@@ -4585,7 +4594,7 @@ const FLICK_SHIELD_SVG = `<svg viewBox="0 0 220 260" xmlns="http://www.w3.org/20
 </svg>`;
 
 function injectShieldsIntoCardBacks(){
-  document.querySelectorAll('.ds-card,.cback,[class*="card-back"]').forEach(el=>{
+  document.querySelectorAll('.ds-card:not(.card-back-shield),.cback:not(.card-back-shield)').forEach(el=>{
     if(el.querySelector('.card-back-shield'))return;
     const wrap=document.createElement('div');
     wrap.className='card-back-shield';
