@@ -1,0 +1,53 @@
+@import url(look-base.css);
+html[data-look=laliga]{
+  --ink:#000316;--ink2:#0a0d2e;--coral:#ff4b44;--red:#e92c30;--pale:#eaffff;--cyan:#00d4d6;--cond:'Barlow Condensed','Arial Narrow',sans-serif;
+  --th-bg:#000316;--th-ink:#eaffff;--th-sub:rgba(234,255,255,.62);--th-accent:#ff4b44;--th-aci:#fff;--th-me:#00d4d6;--th-opp:#ff4b44;--th-panel:rgba(255,255,255,.06);--th-line:rgba(234,255,255,.2);--th-r:4px;
+  --th-fd:'Barlow','Cairo',system-ui,sans-serif;--th-fn:'Barlow Condensed','Arial Narrow',sans-serif;
+  --bg:#000316;--g1:#ff4b44;--g2:#ff7a74;--g3:#ffb0ac;--atk:#ff4b44;--def:#00d4d6;--spc:#8890ff;--t1:#eaffff;--t2:rgba(234,255,255,.78);--t3:rgba(234,255,255,.55);--t4:rgba(234,255,255,.3);--border:rgba(234,255,255,.14);--border2:rgba(234,255,255,.28);--lobby-accent:#ff4b44;
+  --lk-bg:#000316;--lk-deco:url(../assets/patterns/shards.svg) 0 0/340px auto,radial-gradient(70% 40% at 12% 0%,rgba(255,75,68,.35),transparent 70%);--lk-deco2:none;--lk-mkfx:drop-shadow(0 0 16px rgba(255,75,68,.6));
+  --lk-cta:#ff4b44;--lk-cta-ink:#fff;--lk-cta-glow:4px 4px 0 #00d4d6;--lk-btn-r:3px;
+  --lk-sheet:rgba(0,3,22,.92);--lk-panel2:#080b26;--lk-r2:4px;--lk-cut:drop-shadow(0 10px 14px rgba(0,0,0,.6));--lk-tag:#eaffff;--lk-tag-ink:#000316;--lk-tagr:2px;
+  --lk-word:900 1em/1 'Barlow Condensed','Arial Narrow',sans-serif;--lk-wc:#eaffff;--lk-wfx:.05em .05em 0 #ff4b44;--lk-wls:.04em;
+  --lk-res:900 1em/1.05 'Barlow Condensed','Cairo',sans-serif;--lk-resc:#00d4d6;--lk-score:900 1em/1 'Barlow Condensed',sans-serif;--lk-vs:900 italic 1em/1 'Barlow Condensed',sans-serif;--lk-vsc:#fff;--lk-vsfx:.05em .05em 0 #ff4b44;
+  --lk-count:900 1em/1 'Barlow Condensed',sans-serif;--lk-cc:#eaffff;--lk-cfx:.04em .04em 0 #ff4b44;
+  --lk-kbg:#000316;--lk-kdeco:url(../assets/patterns/shards.svg) 0 0/380px auto,radial-gradient(60% 40% at 50% 100%,rgba(255,75,68,.4),transparent 70%);--lk-gobg:rgba(0,2,14,.96);--lk-gosh:0 0 0 1px rgba(255,75,68,.4),0 24px 60px rgba(0,0,0,.6);--lk-codefx:.04em .04em 0 #000;
+}
+html[data-look=laliga] .gx-word{font-style:italic}
+html[data-look=laliga] .rcd-code{color:#eaffff;text-shadow:.05em .05em 0 #ff4b44}
+html[data-look=laliga] .ds-card,html[data-look=laliga] .cback{background:linear-gradient(160deg,#ff4b44,#b71c22);border:1.5px solid #fff;border-radius:3px}
+html[data-look=laliga] .ds-card::before,html[data-look=laliga] .cback::before{display:none}
+html[data-look=laliga] .ds-card::after,html[data-look=laliga] .cback::after{content:'';position:absolute;inset:22% 18%;height:auto;width:auto;background:#fff;-webkit-mask:url(../assets/marks/lmark.png) center/contain no-repeat;mask:url(../assets/marks/lmark.png) center/contain no-repeat;z-index:1}
+/* scoreboard: compact stack */
+.ll-sb{direction:ltr;font-size:min(10px,calc((100vw - 28px)/23));width:23em;font-family:var(--cond);flex-shrink:0}
+.ll-g{display:grid;grid-template-columns:9.6em 7em 5.6em .8em;grid-template-rows:3.4em 3.4em;box-shadow:0 .3em .9em rgba(0,0,0,.45);overflow:hidden}
+.ll-l{grid-area:1/1;background:#e92c30;display:grid;place-items:center}
+.ll-t{grid-area:2/1;background:#fff;color:#000;display:grid;place-items:center}.ll-t b{font-weight:800;font-size:2.35em;letter-spacing:.02em;line-height:1;font-variant-numeric:tabular-nums}
+.ll-c{display:grid;place-items:center;font-weight:800;font-size:2.35em;letter-spacing:.02em;line-height:1}.ll-c span[data-ar="1"]{font-family:'Cairo';font-weight:900;font-size:.8em}
+.ll-c.a{grid-area:1/2;background:#fff;color:#000316}.ll-c.b{grid-area:2/2;background:#000;color:#fff}
+.ll-s{display:grid;place-items:center;font-weight:900;font-size:3.1em;line-height:1;background:#eaffff;color:#000}.ll-s.a{grid-area:1/3;border-bottom:1px solid #000}.ll-s.b{grid-area:2/3}
+.ll-k.a{grid-area:1/4;background:#ff4b44}.ll-k.b{grid-area:2/4;background:#00d4d6}
+.ll-n{display:flex;justify-content:flex-end;gap:.6em;margin-top:.5em;font:700 1.3em 'Cairo';color:rgba(234,255,255,.7)}.ll-n em{font-style:normal}
+.ll-n .th-yc,.ll-n .th-rc{display:inline-block;width:.7em;height:1em;border-radius:.1em;margin-right:.2em}.ll-n .th-yc{background:#ffb800}.ll-n .th-rc{background:#e92c30}
+/* banner */
+.gb{direction:ltr;font-size:min(10px,calc((100vw - 28px)/31.4));width:31.4em;font-family:var(--cond);opacity:0}html[data-look=laliga] .gb.play{opacity:1}
+.gb-g{display:grid;grid-template-columns:9.6em 15.4em 5.6em .8em;grid-template-rows:3.4em 3.4em;box-shadow:0 .3em .9em rgba(0,0,0,.45)}
+.gb-l{grid-area:1/1;background:#e92c30;display:grid;place-items:center}.gb-t{grid-area:2/1;background:#fff;color:#000;display:grid;place-items:center}.gb-t b{font-weight:800;font-size:2.35em;line-height:1}
+.gb-p{grid-area:1/2/3/3;background:#0a0d2e;position:relative}.gb-pw{position:absolute;inset:0;overflow:hidden}.gb-pw::before{content:'';position:absolute;inset:0;background:linear-gradient(115deg,transparent 52%,rgba(255,255,255,.07) 52% 74%,transparent 74%)}
+.gb-pt{position:absolute;left:.8em;bottom:0;width:6.3em;height:7.45em;z-index:2}.gb-pt .th-cut{width:100%;height:100%;aspect-ratio:auto;background-position:center bottom}
+.gb-w{position:absolute;right:.5em;top:0;bottom:0;display:flex;align-items:center;font:900 italic 4.4em 'Barlow Condensed','Cairo';line-height:1;color:var(--wc,#ff4b44);white-space:nowrap;text-shadow:.04em .04em 0 rgba(0,0,0,.35)}.gb-w.long{font-size:2.8em}
+.gb-n{position:absolute;right:.7em;top:.35em;font:800 1.35em var(--cond);color:#fff;opacity:.9;z-index:3}
+.gb-s{display:grid;place-items:center;font-weight:900;font-size:3.1em;line-height:1;background:#eaffff;color:#000}.gb-s.a{grid-area:1/3;border-bottom:1px solid #000}.gb-s.b{grid-area:2/3}
+.gb-k.a{grid-area:1/4;background:#ff4b44}.gb-k.b{grid-area:2/4;background:#00d4d6}
+.gb.play .gb-p{animation:llflip .4s ease-out both}.gb.play .gb-pt{animation:llzoom .85s .15s cubic-bezier(.2,1.2,.3,1) both}.gb.play .gb-w{animation:llsweep .6s .5s cubic-bezier(.15,.9,.25,1) both}
+@keyframes llflip{from{transform:scaleY(.1);opacity:0}}@keyframes llzoom{from{transform:translateY(40%) scale(.4);opacity:0}}@keyframes llsweep{from{transform:translateX(70%);opacity:0}}
+/* cards */
+html[data-look=laliga] .card.atk,html[data-look=laliga] .slot-card.atk{--ct:#e92c30}html[data-look=laliga] .card.def,html[data-look=laliga] .slot-card.def{--ct:#00d4d6}html[data-look=laliga] .card.spc,html[data-look=laliga] .slot-card.spc{--ct:#000316}
+html[data-look=laliga] .card{filter:drop-shadow(0 4px 8px rgba(0,0,0,.6))}
+html[data-look=laliga] .card .f{position:absolute;inset:0;background:#fff;clip-path:polygon(0 0,82% 0,100% 11%,100% 100%,0 100%);color:#000316;overflow:hidden}
+html[data-look=laliga] .card .band{position:absolute;left:0;top:0;width:100%;height:36%;background:var(--ct);clip-path:polygon(0 0,100% 0,100% 42%,0 100%)}
+html[data-look=laliga] .card .n,html[data-look=laliga] .lksc .n{position:absolute;left:9%;top:1%;font:900 calc(var(--w)*.5)/1 var(--cond);color:#fff}
+html[data-look=laliga] .card .i,html[data-look=laliga] .lksc .i{position:absolute;right:9%;top:38%;font-size:calc(var(--w)*.4);line-height:1}
+html[data-look=laliga] .card .tg{position:absolute;right:12%;top:6%;font:800 calc(var(--w)*.1) var(--cond);letter-spacing:.1em;color:#fff;opacity:.9}
+html[data-look=laliga] .card .nm,html[data-look=laliga] .lksc .nm{position:absolute;left:9%;right:6%;bottom:6%;font:900 calc(var(--w)*.15) 'Cairo';line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+html[data-look=laliga] .card .nm small{display:block;font:800 calc(var(--w)*.1) var(--cond);opacity:.6;text-transform:uppercase;direction:ltr;text-align:left}
+html[data-look=laliga] .lksc .f{position:absolute;inset:0;background:#fff;clip-path:polygon(0 0,82% 0,100% 11%,100% 100%,0 100%);overflow:hidden;color:#000316}.lksc .band{position:absolute;left:0;top:0;width:100%;height:36%;background:var(--ct);clip-path:polygon(0 0,100% 0,100% 42%,0 100%)}

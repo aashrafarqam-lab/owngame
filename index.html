@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#030508">
 <title>FLICK — Street Football</title>
+<link rel="stylesheet" href="themes/common.css">
+<script src="themes/engine.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
@@ -1280,6 +1282,14 @@ button{cursor:pointer;font-family:'Cairo',sans-serif;border:none;outline:none;ba
       <div class="var-pick" onclick="submitVAR('heads')"><span class="var-ico">🟡</span><div class="var-lbl">وش</div><div class="var-hint">يأكد الحدث</div></div>
       <div class="var-pick" onclick="submitVAR('tails')"><span class="var-ico">⚪</span><div class="var-lbl">ضهر</div><div class="var-hint">يعكس الحدث</div></div>
     </div>
+  </div>
+</div>
+<div class="overlay center hidden" id="ov-var-result">
+  <div class="ovp center">
+    <div style="font-size:36px;text-align:center;margin-bottom:8px">📹</div>
+    <div class="ov-title" id="var-result-title">VAR</div>
+    <div class="ov-sub" id="var-result-sub"></div>
+    <div class="ov-acts"><button class="btn-cta" onclick="closeOverlay('ov-var-result')">تمام</button></div>
   </div>
 </div>
 <div class="overlay center hidden" id="ov-penalty">
@@ -2947,6 +2957,7 @@ function isMyPenalty(){return gameState?.phase==='penalty_pending'&&gameState?.d
 function getName(){
   const v=document.getElementById('inp-name').value.trim();
   if(!v){toast('ادخل اسمك الأول');return null;}
+  try{localStorage.setItem('flick.name',v)}catch(e){}
   return v;
 }
 
@@ -2989,7 +3000,7 @@ async function doCreate(){
       strategyDrawCount:null,strategyCardsPlayed:0,turnCount:0,winner:null,
       createdAt:Date.now(),
       players:{
-        p1:{name,goals:0,hand:d1.hand,fouls:0,yellowCard:false,redCard:false,suspended:0,connected:true},
+        p1:{name,portrait:(window.FlickTheme?FlickTheme.myPortrait():1),goals:0,hand:d1.hand,fouls:0,yellowCard:false,redCard:false,suspended:0,connected:true},
         p2:null,
       }
     };
@@ -3016,7 +3027,7 @@ async function doJoin(){
     const deck=OwnGoalEngine.buildDeck(room.mode);
     const dealt=OwnGoalEngine.dealHand(deck,4);
     await update(ref(db,`rooms/${code}/players`),{
-      p2:{name,goals:0,hand:dealt.hand,fouls:0,yellowCard:false,redCard:false,suspended:0,connected:true}
+      p2:{name,portrait:(window.FlickTheme?FlickTheme.myPortrait():2),goals:0,hand:dealt.hand,fouls:0,yellowCard:false,redCard:false,suspended:0,connected:true}
     });
     myId='p2';roomCode=code;
     showRoom(code,room.players.p1.name,name);
@@ -3062,6 +3073,7 @@ async function doStart(){
     room.ballState='loose';
     room.attackChain=[];room.chainPhase='idle';
     ensureRoomAttackCard(room);
+    room.startedAt=Date.now();
     room.lastEvent={type:'game_started',ts:Date.now()};
     return room;
   });
@@ -3098,6 +3110,9 @@ function syncUI(prev){
     showScreen('game');
     if(typeof WorldCanvas!=='undefined')WorldCanvas.setState('game');
     renderGameUI();
+    try{handleEvents(prev);}catch(e){console.warn('events',e)}
+    if(window.FlickTheme)FlickTheme.phase(prev,gameState);
+    closeOverlay('ov-var-result');closeOverlay('ov-var');closeOverlay('ov-penalty');
     showGameOver();
     return;
   }
@@ -3105,21 +3120,22 @@ function syncUI(prev){
   // ── ACTIVE GAME ──
   if(phase!=='waiting'){
     // An attacker with no attack card can never move: repair the hand (idempotent transaction)
-    if(phase==='attack'&&gameState.attacker===myId&&!window._ensuringAtk){
-      const hh=gameState.players?.[myId]?.hand||[];
-      if(!hh.some(c=>c.type==='attack')){
-        window._ensuringAtk=true;
-        applyEnsureAttack().catch(()=>{}).finally(()=>setTimeout(()=>{window._ensuringAtk=false;},700));
-      }
-    }
+    ensureAtkIfNeeded();skipSuspendedIfNeeded();
     TunnelSystem.stop();
     showScreen('game');
     if(typeof WorldCanvas!=='undefined')WorldCanvas.setState('game');
     renderGameUI();
+    try{handleEvents(prev);}catch(e){console.warn('events',e)}
+    if(window.FlickTheme)FlickTheme.phase(prev,gameState);
+    if((gameState.varWindowOpen||phase==='var_pending')&&gameState.pendingVARFor===myId){showOverlay('ov-var');}
+    else{closeOverlay('ov-var');}
+    if(phase==='penalty_pending'&&gameState.defender===myId){renderPenaltyOverlay();}
+    else{closeOverlay('ov-penalty');}
     return;
   }
 
   // ── WAITING ROOM ──
+  if(window.FlickTheme)FlickTheme.phase(prev,gameState);
   showScreen('room');
   if(typeof WorldCanvas!=='undefined')WorldCanvas.setState('lobby');
   TunnelSystem.start(selectedTunnelMode);
@@ -3136,6 +3152,7 @@ function syncUI(prev){
     }
   }
 
+  if(window.FlickTheme)FlickTheme.room(gameState);
   // Handle new events
   handleEvents(prev);
 
@@ -3246,6 +3263,7 @@ function renderGameUI(){
 
   // Controls
   updateControls();
+  if(window.FlickTheme)FlickTheme.sync(gs);
 }
 
 function renderNotifs(elId,player){
@@ -3268,7 +3286,7 @@ function renderSlot(id,atkCard,defCard){
   el.className='clash-slot filled';
   const tc=typeClass(card.type);
   const hc=holoClass(card.id);
-  el.innerHTML=`<div class="slot-card ${tc} ${hc}">
+  el.innerHTML=(window.FlickTheme&&FlickTheme.slotFace(card,tc,hc))||`<div class="slot-card ${tc} ${hc}">
     <div class="c-stripe"></div>
     <div class="c-icon slot-card .c-icon">${cardIcon(card.id)}</div>
     <div class="c-name">${card.ar}</div>
@@ -3287,7 +3305,9 @@ function renderHand(hand){
     const hc=holoClass(card.id);
     const div=document.createElement('div');
     div.className=['card',tc,hc,!ok?'dead':'',sel?'sel':''].filter(Boolean).join(' ');
-    div.innerHTML=`
+    div.dataset.cid=card.id;
+    const _tf=window.FlickTheme&&FlickTheme.cardFace(card,p);
+    div.innerHTML=_tf||`
       <div class="c-stripe"></div>
       <div class="c-type">${typeLabel(card.type)}</div>
       <div class="c-icon">${cardIcon(card.id)}</div>
@@ -3393,6 +3413,7 @@ async function commitAttack(card){
     let dp=[...(room.discardPile||[])];
     if(dk.length===0&&dp.length>0){dk=OwnGoalEngine.shuffle(dp);dp=[];}
     if(dk.length>0)hand.push(dk.shift());
+    dp.push(card);                      // played cards go to the discard pile so the deck can recycle
     room.players[myId].hand=hand;
     room.deck=dk;
     room.discardPile=dp;
@@ -3429,6 +3450,7 @@ async function commitDefense(card,isBurn){
     let dp=[...(room.discardPile||[])];
     if(dk.length===0&&dp.length>0){dk=OwnGoalEngine.shuffle(dp);dp=[];}
     if(dk.length>0)hand.push(dk.shift());
+    dp.push(card);
     room.players[myId].hand=hand;
     room.deck=dk;room.discardPile=dp;
     room.lastDefenseCard=card;
@@ -3622,7 +3644,16 @@ async function submitVAR(choice){
     room.varWindowOpen=false;room.pendingVARFor=null;
     // If won and tails → reverse last goal
     const shouldReverse=result.won&&choice==='tails';
-    if(shouldReverse&&room.lastEvent?.player){
+    if(room.phase==='var_pending'){
+      // VAR on a penalty: the penalty stands unless VAR reverses it, then play moves on
+      const pen=room.pendingVAREvent&&room.pendingVAREvent.player;
+      room.pendingVAREvent=null;
+      if(!shouldReverse&&pen&&room.players[pen]){
+        room.players[pen].goals=(room.players[pen].goals||0)+1;
+        if(room.players[pen].goals>=room.winGoals){room.phase='gameover';room.winner=pen;}
+        else advanceRoomTurn(room,'loose');
+      }else{advanceRoomTurn(room,'loose');}
+    }else if(shouldReverse&&room.lastEvent?.player){
       const pid=room.lastEvent.player;
       room.players[pid].goals=Math.max(0,(room.players[pid].goals||0)-1);
     }
@@ -3630,6 +3661,7 @@ async function submitVAR(choice){
     return room;
   });
   // Show result
+  setTimeout(()=>closeOverlay('ov-var-result'),2600);
   const title=result.won?'✅ VAR نجح!':'❌ VAR فشل';
   const sub=result.won?(choice==='tails'?'الحدث اتعكس — الهدف اتلغى':'الحدث اتأكد'):'الحدث فضل زي ما هو';
   document.getElementById('var-result-title').textContent=title;
@@ -3647,13 +3679,13 @@ function renderPenaltyOverlay(){
   const ownGoalCard=myHand.find(c=>c.id==='owngoal');
   if(ownGoalCard){
     const btn=document.createElement('button');
-    btn.className='btn-primary';
+    btn.className='btn-cta';
     btn.textContent='🟢 العب أون جول — الغي البنلتي';
     btn.onclick=()=>{closeOverlay('ov-penalty');selectedCardIdx=myHand.indexOf(ownGoalCard);playSelected();};
     penOpts.appendChild(btn);
   }
   const burnBtn=document.createElement('button');
-  burnBtn.className='btn-secondary';
+  burnBtn.className='btn-ghost';
   burnBtn.textContent='😬 احرق كارت — الهدف بيتسجل';
   burnBtn.onclick=()=>{closeOverlay('ov-penalty');burnSelected();};
   penOpts.appendChild(burnBtn);
@@ -3762,6 +3794,7 @@ function showGameOver(){
     }
   }else{clownEl.classList.add('hidden');}
   showOverlay('ov-gameover');
+  if(window.FlickTheme)FlickTheme.gameOver(gs);
 }
 
 async function doRestart(){
@@ -3778,6 +3811,7 @@ async function doRestart(){
     room.ballState='loose';room.possession=null;room.attackChain=[];room.chainPhase='idle';
     room.lastAttackCard=null;room.lastDefenseCard=null;
     ensureRoomAttackCard(room);
+    room.startedAt=Date.now();
     room.lastEvent={type:'rematch',ts:Date.now()};
     room.pendingPenaltyFor=null;room.pendingVARFor=null;
     room.varWindowOpen=false;room.winner=null;room.turnCount=0;
@@ -3794,6 +3828,35 @@ async function doRestart(){
 window.doRestart=doRestart;
 
 // FIX 1: Fix attacker's hand if they have no attack cards
+let _skipping=false;
+function skipSuspendedIfNeeded(){
+  const g=gameState;
+  if(!g||g.phase!=='attack'||g.attacker!==myId||_skipping)return;
+  if((g.players?.[myId]?.suspended||0)<=0)return;
+  _skipping=true;
+  setTimeout(async()=>{
+    try{
+      const{ref,runTransaction}=window._fbFns;
+      await runTransaction(ref(window._db,`rooms/${roomCode}`),(room)=>{
+        if(!room||room.phase!=='attack'||room.attacker!==myId||!((room.players[myId]?.suspended)>0))return room;
+        advanceRoomTurn(room,'loose');
+        room.lastEvent={type:'turnover',detail:'موقوف — الدور اتعدّى',ts:Date.now()};
+        return room;
+      });
+    }catch(e){}
+    _skipping=false;
+  },1400);
+}
+let _ensN=0,_ensuringAtk=false;
+function ensureAtkIfNeeded(){
+  const g=gameState;
+  if(!g||g.phase!=='attack'||g.attacker!==myId||_ensuringAtk)return;
+  const hh=g.players?.[myId]?.hand||[];
+  if(hh.some(c=>c.type==='attack')){_ensN=0;return;}
+  if(_ensN>=6)return;               // nothing left to swap in: stop retrying
+  _ensuringAtk=true;_ensN++;
+  applyEnsureAttack().catch(()=>{}).finally(()=>{_ensuringAtk=false;setTimeout(ensureAtkIfNeeded,160);});
+}
 async function applyEnsureAttack(){
   const{ref,runTransaction}=window._fbFns;
   await runTransaction(ref(window._db,`rooms/${roomCode}`),(room)=>{
@@ -3842,6 +3905,7 @@ function handleEvents(prev){
   const ev=gs.lastEvent;
   if(!ev||!prev||ev.ts===prev?.lastEvent?.ts)return;
   const msgEl=document.getElementById('event-msg');
+  if(window.FlickTheme)FlickTheme.event(ev,gs,prev);
 
   // Cinematic flashes for major events
   if(ev.type==='goal'||ev.type==='penalty_scored'){
@@ -3899,7 +3963,7 @@ function showOGFlash(){
 function showVARFlash(ev){
   const el=document.getElementById('cf-var');if(!el)return;
   const sub=document.getElementById('cf-var-sub');
-  if(sub)sub.textContent=ev.goalStands?'الهدف اتأكد ✅':'الهدف اتلغى ❌';
+  if(sub)sub.textContent=ev.reversed?'الهدف اتلغى ❌':'الهدف اتأكد ✅';
   el.className='cf show';
   setTimeout(()=>el.className='cf',2000);
   worldReact('var');
@@ -3912,8 +3976,8 @@ function triggerLegendMoment(){
 }
 
 // ── OVERLAYS ──
-function showOverlay(id){document.getElementById(id).classList.remove('hidden');}
-function closeOverlay(id){document.getElementById(id).classList.add('hidden');}
+function showOverlay(id){const e=document.getElementById(id);if(e)e.classList.remove('hidden');}
+function closeOverlay(id){const e=document.getElementById(id);if(e)e.classList.add('hidden');}
 window.closeOverlay=closeOverlay;
 
 
@@ -4218,6 +4282,7 @@ function selectTunnelMode(mode){
 }
 
 function applyLobbyTheme(mode){
+  if(window.FlickTheme&&FlickTheme.active)return; // looks own the lobby colours
   const root = document.documentElement;
   const sheet = document.querySelector('.lobby-sheet');
   const hero = document.getElementById('lobby-hero');
@@ -4260,15 +4325,10 @@ window.applyLobbyTheme = applyLobbyTheme;
 
 // ── BOOT ──
 window.addEventListener('DOMContentLoaded',()=>{
-  WorldCanvas.init();
   TunnelSystem.init();
-  WorldCanvas.setState('loading');
-  // Apply default theme B immediately
-  setTimeout(()=>applyLobbyTheme('b'),50);
-  setTimeout(()=>{
-    WorldCanvas.setState('lobby');
-    showScreen('lobby');
-  },400);
+  try{const n=localStorage.getItem('flick.name');if(n)document.getElementById('inp-name').value=n;}catch(e){}
+  const go=()=>{showScreen('lobby');if(window.FlickTheme)FlickTheme.afterBoot();};
+  if(window.FlickTheme)FlickTheme.boot().then(()=>setTimeout(go,350),()=>setTimeout(go,350));else setTimeout(go,400);
 });
 
 
@@ -4593,7 +4653,8 @@ const FLICK_SHIELD_SVG = `<svg viewBox="0 0 220 260" xmlns="http://www.w3.org/20
   <path d="M 110 6 L 196 26 L 196 110 Q 196 169 110 210 Q 24 169 24 110 L 24 26 Z" fill="none" stroke="url(#cbg1)" stroke-width="2.2"/>
 </svg>`;
 
-function injectShieldsIntoCardBacks(){
+function injectShieldsIntoCardBacks(){ return; // superseded by looks
+  
   document.querySelectorAll('.ds-card:not(.card-back-shield),.cback:not(.card-back-shield)').forEach(el=>{
     if(el.querySelector('.card-back-shield'))return;
     const wrap=document.createElement('div');
@@ -4604,9 +4665,7 @@ function injectShieldsIntoCardBacks(){
 }
 
 // Observe DOM for new card backs
-const _shieldObs=new MutationObserver(()=>injectShieldsIntoCardBacks());
-_shieldObs.observe(document.body,{childList:true,subtree:true});
-setTimeout(injectShieldsIntoCardBacks,100);
+// card backs are drawn by the active look (CSS), nothing is injected any more
 
 // ── 4-BOX CODE DISPLAY ──
 function updateCodeBoxes(val){
