@@ -1,0 +1,143 @@
+/* ═════════════════════════════════════════════════════════════════
+   FLICK — desktop layout. Wide landscape screens only (phones are untouched).
+   Same content as mobile; the space is used for a real table, a split lobby,
+   a two-column waiting room and a two-column result screen.
+   ═════════════════════════════════════════════════════════════════ */
+@media (min-width:900px) and (min-aspect-ratio:5/4){
+html[data-look]{--cw:clamp(74px,10.6vh,128px);--ch:calc(var(--cw)*1.486)}
+html[data-look] body{overflow:hidden}
+html[data-look] #toast{font-size:14px;padding:12px 22px}
+
+/* ── loading ── */
+html[data-look] #th-dec-load{transform:scale(1.35)}
+
+/* ── lobby: branding left, control panel right ── */
+html[data-look] #s-lobby{flex-direction:row;align-items:center;justify-content:flex-end;padding:0}
+html[data-look] #s-lobby .lobby-sheet{position:relative;width:min(480px,38vw);max-width:none;margin:0 max(4vw,36px) 0 auto;max-height:94vh;overflow-y:auto;border-radius:26px;padding:22px 26px 24px;scrollbar-width:none}
+html[data-look] #s-lobby .lobby-sheet::-webkit-scrollbar{display:none}
+html[data-look] .nd-hero,html[data-look] .gx-hero{top:0;bottom:0;left:0;right:46vw;padding:0;justify-content:center;gap:10px}
+html[data-look] .nd-sticker{width:min(15vw,210px);margin-bottom:12px}
+html[data-look] .nd-word.s{font-size:min(9vw,128px)}
+html[data-look] .gx-hero .gx-mk{transform:scale(1.9);margin:34px 0 46px}
+html[data-look] .gx-hero .gx-word{font-size:min(8.4vw,118px)}
+html[data-look] .nd-tag,html[data-look] .gx-tag{font-size:17px;margin-top:10px}
+html[data-look=nightderby] #s-lobby .lobby-sheet{background:rgba(22,11,44,.82);border:3px solid var(--cream);box-shadow:8px 8px 0 var(--hot);border-radius:20px}
+html:is([data-look=premier],[data-look=laliga],[data-look=starball]) #s-lobby .lobby-sheet{background:var(--lk-sheet);border:1px solid var(--th-line);box-shadow:0 30px 80px rgba(0,0,0,.5)}
+html[data-look=laliga] #s-lobby .lobby-sheet{border-radius:6px}
+html[data-look] .inp-name{font-size:16px;padding:13px 16px}
+html[data-look] .btn-cta,html[data-look] .btn-start-shimmer{font-size:17px;padding:14px;cursor:pointer}
+html[data-look] .th-lt .t{height:46px}
+html[data-look] .th-lt,html[data-look] .th-quick button,html[data-look] .tmode-btn,html[data-look] .mode-tab,html[data-look] .rmode-btn,html[data-look] .btn-cta,html[data-look] .btn-link,html[data-look] .btn-ghost,html[data-look] .btn-play,html[data-look] .btn-burn{cursor:pointer;transition:transform .14s,filter .14s}
+html[data-look] .th-lt:hover,html[data-look] .th-quick button:hover,html[data-look] .tmode-btn:hover,html[data-look] .rmode-btn:hover{transform:translateY(-2px);filter:brightness(1.1)}
+html[data-look] .btn-cta:hover,html[data-look] .btn-start-shimmer:hover,html[data-look] .btn-play:hover{filter:brightness(1.08);transform:translateY(-1px)}
+
+/* ── waiting room: arena left, controls right ── */
+html[data-look] #s-room{padding:0 4vw}
+html[data-look] .room-arena{direction:ltr;max-width:1120px;width:100%;display:grid;grid-template-columns:1.3fr 1fr;grid-template-areas:"code code" "vs tun" "vs mode" "vs act";grid-template-rows:auto auto auto 1fr;gap:18px 44px;align-items:start;justify-items:stretch}
+html[data-look] .room-arena>*{direction:rtl}html[data-look] .room-arena>.room-code-display{grid-area:code;text-align:center}
+html[data-look] .room-arena>.vs-arena{grid-area:vs;min-height:420px;align-self:stretch}
+html[data-look] .room-arena>div:nth-of-type(3){grid-area:tun}
+html[data-look] .room-arena>div:nth-of-type(4){grid-area:mode}
+html[data-look] .room-arena>.room-actions{grid-area:act;align-self:end}
+html[data-look] .rcd-code{font-size:clamp(70px,9vh,104px)}
+html[data-look] .vs-players{min-height:300px}
+html[data-look] .vs-word{font-size:64px}
+html[data-look] .vs-status{font-size:14px}
+html[data-look] .gx-rp,html[data-look] .nd-rp{bottom:96px;width:34%}
+html[data-look] .gx-rn,html[data-look] .nd-rn{bottom:70px;font-size:17px}
+
+/* ── match: a table with side panels ── */
+html[data-look] #th-sb-host{padding-top:40px;padding-bottom:30px}
+html[data-look] .nb,html[data-look] .ng{font-size:15px}
+html[data-look] .pl-sb,html[data-look] .pl-eg{font-size:14px}
+html[data-look] .ll-sb{font-size:17px}html[data-look] .gb{font-size:14px}
+html[data-look] .cs,html[data-look] .cg{font-size:14px}
+html[data-look] #th-bn-host{padding-top:46px}
+html[data-look] .battle-zone{direction:ltr;display:grid;grid-template-columns:minmax(170px,1fr) minmax(380px,680px) minmax(170px,1fr);grid-template-rows:auto auto 1fr;gap:10px 22px;align-items:center;justify-items:center;padding:6px 3vw 0}
+html[data-look] .opp-area{grid-column:2;grid-row:1;gap:6px}
+html[data-look] .deck-strip{display:contents}
+html[data-look] .deck-strip>.ds-pile:first-child{grid-column:1;grid-row:2/4;justify-self:end;align-self:center}
+html[data-look] .deck-strip>div:nth-child(2){grid-column:2;grid-row:2;display:flex;flex-direction:column;align-items:center;gap:6px}
+html[data-look] .deck-strip>.ds-pile:last-child{grid-column:3;grid-row:2/4;justify-self:start;align-self:center}
+html[data-look] .clash-center{grid-column:2;grid-row:3;align-self:center;gap:10px}
+html[data-look] .battle-zone{overflow:visible}
+html[data-look] .sheet-handle{display:none}
+html[data-look] .cback{width:calc(var(--cw)*.5);height:calc(var(--ch)*.5)}
+html[data-look] .opp-cards{gap:8px}
+html[data-look] .ds-stack{width:calc(var(--cw)*.84);height:calc(var(--ch)*.84)}
+html[data-look] .ds-card{width:calc(var(--cw)*.8);height:calc(var(--ch)*.8)}
+html[data-look] .ds-discard{width:calc(var(--cw)*.8);height:calc(var(--ch)*.8)}
+html[data-look] .ds-label,html[data-look] .opp-name{font-size:12px;margin-top:6px}
+html[data-look] .ds-count{width:28px;height:28px;font-size:13px}
+html[data-look] .poss-strip{font-size:12px}
+html[data-look] .turn-pill{font-size:14px;padding:9px 26px}
+html[data-look] .clash-slots{gap:clamp(30px,6vw,90px)}
+html[data-look] .play-slot{width:var(--cw);height:var(--ch);display:grid;place-items:center;border:2px dashed var(--th-line);border-radius:12px;color:var(--th-sub);font-size:22px;background:rgba(255,255,255,.04)}
+html[data-look] .play-slot:has(.slot-card){border-color:transparent;background:none}
+html[data-look] .battle-status{font-size:clamp(18px,3vh,26px)}
+html[data-look] .battle-event{font-size:14px;min-height:18px}
+html[data-look] .action-row{justify-content:center;gap:16px;padding:6px 0}
+html[data-look] .btn-play,html[data-look] .btn-burn{width:auto;min-width:200px;font-size:16px;padding:12px 40px}
+html[data-look] .hand-zone{justify-content:center;padding-bottom:30px}
+html[data-look] .hand{gap:clamp(12px,1.8vw,26px);padding:18px 24px 6px}
+html[data-look] .card{cursor:pointer;transition:transform .16s,filter .16s}
+html[data-look] .card.dead{cursor:not-allowed}
+html[data-look] .card:not(.dead):not(.sel):hover{transform:translateY(-16px) scale(1.07);z-index:9}
+html[data-look] .card.sel{transform:translateY(-26px) scale(1.12)}
+html[data-look] .strat-bar{justify-content:center}
+/* portrait panels (built by desktop.js) */
+.dk-pl{display:flex;flex-direction:column;align-items:center;gap:8px;position:relative;width:min(100%,240px)}
+.dk-pl.opp{grid-column:1;grid-row:1/3;justify-self:end;align-self:start}.dk-pl.me{grid-column:3;grid-row:1/3;justify-self:start;align-self:start}
+.dk-pl .th-cut{width:clamp(88px,11.5vh,132px)}
+.dk-pl .nm{font:900 16px var(--th-fd);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:3px 14px;border-radius:var(--lk-tagr,6px);background:var(--lk-tag,var(--cream,#fff));color:var(--lk-tag-ink,var(--ink,#000))}
+.dk-pl .sc{font:900 34px/1 var(--th-fn);color:var(--th-opp);text-shadow:0 0 18px currentColor}.dk-pl.me .sc{color:var(--th-me)}
+html[data-look=nightderby] .dk-pl .th-cut{filter:var(--stk)}html[data-look=nightderby] .dk-pl .nm{font:400 20px 'Lalezar','Cairo';border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);transform:rotate(-2deg)}
+html:is([data-look=premier],[data-look=laliga],[data-look=starball]) .dk-pl .th-cut{filter:var(--lk-cut)}
+.dk-keys{position:absolute;left:22px;bottom:14px;display:flex;gap:18px;font:700 12px var(--th-fd);color:var(--th-sub);z-index:5;pointer-events:none}
+.dk-keys kbd{display:inline-block;min-width:22px;padding:2px 6px;margin:0 2px;border:1px solid var(--th-line);border-bottom-width:2px;border-radius:5px;background:var(--th-panel);color:var(--th-ink);font:800 11px var(--th-fn);text-align:center}
+.dk-keys span:first-child{direction:rtl}
+
+/* ── kick-off ── */
+html[data-look] .nk-p,html[data-look] .gx-kp{width:min(34%,400px);bottom:10%}
+html[data-look] .nk-vs{font-size:170px}html[data-look] .gx-kvs{font-size:140px;top:16%}
+html[data-look] .nk-c{font-size:230px;top:40%}html[data-look] .gx-kc{font-size:200px;top:38%}
+html[data-look=starball] .gx-kc{width:210px;height:210px;font-size:130px;top:38%}
+html[data-look=starball] .sb-stars{top:30%}html[data-look=starball] .sb-stars svg{width:30px;height:30px}
+html[data-look] .nk-tag{font-size:34px}html[data-look] .gx-kn{font-size:24px;padding:5px 22px}
+html[data-look] .nk-cap,html[data-look] .gx-kcap{font-size:15px}
+
+/* ── result screen: two columns ── */
+html[data-look] #ov-gameover .ovp{max-width:980px;width:min(94vw,980px);padding:18px}
+html[data-look] .ngo,html[data-look] .gx-go{direction:ltr;display:grid;grid-template-columns:1fr 1fr;grid-auto-flow:dense;column-gap:34px;row-gap:6px;align-items:start;padding:26px 30px 24px}
+html[data-look] .ngo>.ngo-t,html[data-look] .gx-go>.gx-gtop,html[data-look] .gx-go>.gx-res{grid-column:1/-1}
+html[data-look] .ngo>.ngo-pl,html[data-look] .gx-go>.gx-pl,html[data-look] .ngo>.ngo-meta,html[data-look] .gx-go>.gx-meta{grid-column:1}
+html[data-look] .ngo>.ngo-b,html[data-look] .gx-go>.gx-bd,html[data-look] .ngo>.ngo-st,html[data-look] .gx-go>.gx-st,html[data-look] .ngo>.ngo-clown,html[data-look] .gx-go>.gx-clown{grid-column:2}
+html[data-look] .ngo>.ngo-a,html[data-look] .gx-go>.gx-a{grid-column:1/-1;flex-direction:row;gap:14px;margin-top:14px}
+html[data-look] .ngo-a .nbtn,html[data-look] .gx-a .gx-b{flex:1;cursor:pointer;font-size:16px}
+html[data-look] .ngo-t,html[data-look] .gx-res,html[data-look] .ngo-meta,html[data-look] .gx-meta,html[data-look] .ngo-clown,html[data-look] .gx-clown,html[data-look] .ngo-b,html[data-look] .gx-bd,html[data-look] .ngo-a,html[data-look] .gx-a,html[data-look] .gx-gtop{direction:rtl}
+html[data-look] .ngo-t{font-size:78px}html[data-look] .gx-res{font-size:64px}
+html[data-look] .ngo-sc{font-size:84px}html[data-look] .gx-sc{font-size:76px}
+html[data-look] .ngo-r b,html[data-look] .gx-r b{font-size:22px}
+html[data-look] .ngo-r,html[data-look] .gx-r{padding:9px 0}
+
+/* ── other overlays + panels ── */
+html[data-look] .ovp{max-width:560px}
+html[data-look] .th-ovl-h,html[data-look] .th-ovl-b,html[data-look] .th-ovl-f{width:min(100%,820px);margin-left:auto;margin-right:auto}
+html[data-look] .th-ovl-h h2{font-size:30px}
+html[data-look] .th-lcards{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+html[data-look] .th-lc{cursor:pointer;transition:transform .15s}html[data-look] .th-lc:hover{transform:translateY(-3px)}
+html[data-look] .th-lc .pv{height:120px}
+html[data-look] .th-pg{grid-template-columns:repeat(5,1fr);gap:18px 14px}html[data-look] .th-pt{height:150px;cursor:pointer}html[data-look] .th-pt .bg{height:88px}
+html[data-look] .th-bg{grid-template-columns:repeat(3,1fr)}
+html[data-look] .th-hr{height:50px;font-size:14px}html[data-look] .th-rk{height:48px;font-size:14px}
+html[data-look] .th-x,html[data-look] .th-btn{cursor:pointer}
+html[data-look] .th-btn{max-width:420px;margin:0 auto}
+}
+/* short laptop screens: tighten the table */
+@media (min-width:900px) and (min-aspect-ratio:5/4) and (max-height:680px){
+html[data-look] #th-sb-host{padding-top:38px;padding-bottom:26px}
+html[data-look] .nb,html[data-look] .ng{font-size:12px}html[data-look] .pl-sb,html[data-look] .pl-eg,html[data-look] .gb,html[data-look] .cs,html[data-look] .cg{font-size:11.5px}html[data-look] .ll-sb{font-size:14px}
+html[data-look] .dk-pl .th-cut{width:96px}html[data-look] .dk-pl .sc{font-size:28px}
+html[data-look] .vs-players{min-height:220px}html[data-look] .room-arena>.vs-arena{min-height:330px}
+html[data-look] .ngo-t,html[data-look] .gx-res{font-size:48px}html[data-look] .ngo-sc,html[data-look] .gx-sc{font-size:56px}
+}

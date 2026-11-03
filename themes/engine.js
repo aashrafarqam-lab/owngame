@@ -54,6 +54,15 @@ function loadLook(id){
 }
 T.register=function(id,impl){impls[id]=impl};
 loadLook(saved);   // start fetching now, in parallel with the page
+/* ── desktop: wide landscape screens get their own layout (loaded only when needed) ── */
+var dq=window.matchMedia?matchMedia('(min-width:900px) and (min-aspect-ratio:5/4)'):null;
+function desk(){
+  if(!dq)return;R.classList.toggle('th-desk',dq.matches);
+  if(dq.matches&&!T._dk){T._dk=1;
+    var c=D.createElement('link');c.rel='stylesheet';c.href='themes/desktop.css';D.head.appendChild(c);
+    var j=D.createElement('script');j.src='themes/desktop.js';D.head.appendChild(j);}
+}
+desk();if(dq){if(dq.addEventListener)dq.addEventListener('change',desk);else if(dq.addListener)dq.addListener(desk)}
 
 /* ── data helpers ── */
 var AR=/[\u0600-\u06FF]/;
